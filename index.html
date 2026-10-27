@@ -36,6 +36,11 @@
     .tabs button:hover{ color:var(--ink); }
     .tabs button:focus-visible{ outline:2px solid var(--accent); }
     .tabs button[aria-pressed="true"]{ background:var(--accent); color:#0b1220; }
+    /* the rankings in the game's own colours: points yellow, economy grey, research green, military red,
+       lifeform purple. A dot when not selected, the whole button when selected. */
+    #tabs button::before{ content:''; display:inline-block; width:8px; height:8px; margin-right:7px; border-radius:50%; background:var(--cat); vertical-align:1px; }
+    #tabs button[aria-pressed="true"]{ background:var(--cat); color:var(--cat-ink); }
+    #tabs button[aria-pressed="true"]::before{ background:var(--cat-ink); opacity:.55; }
     input[type=search]{ flex:1 1 220px; min-width:180px; padding:8px 11px; background:var(--panel); border:1px solid var(--line); border-radius:8px; color:var(--ink); font:inherit; }
     input[type=search]:focus{ outline:none; border-color:var(--accent); }
     label.check{ display:inline-flex; align-items:center; gap:7px; color:var(--muted); cursor:pointer; user-select:none; }
@@ -211,11 +216,11 @@
     // [id, name, status, alliance, total, totalPos, economy, economyPos, research, researchPos, military, militaryPos, ships, lifeform, lifeformPos]
     const CATEGORIES =
     [
-        { key:'total', label:'Generale', score:4, pos:5 },
-        { key:'economy', label:'Economia', score:6, pos:7 },
-        { key:'research', label:'Ricerca', score:8, pos:9 },
-        { key:'military', label:'Militare', score:10, pos:11, ships:12 },
-        { key:'lifeform', label:'Forme di vita', score:13, pos:14 },
+        { key:'total', label:'Generale', score:4, pos:5, color:'#c9c42c', ink:'#1a1700' },
+        { key:'economy', label:'Economia', score:6, pos:7, color:'#8c939c', ink:'#101418' },
+        { key:'research', label:'Ricerca', score:8, pos:9, color:'#62b02f', ink:'#0d1a05' },
+        { key:'military', label:'Militare', score:10, pos:11, ships:12, color:'#d0383a', ink:'#fff' },
+        { key:'lifeform', label:'Forme di vita', score:13, pos:14, color:'#7457d0', ink:'#fff' },
     ];
     const FLAGS = { v:'in vacanza', i:'inattivo da 7 giorni', I:'inattivo da 28 giorni', b:'bannato', o:'fuorilegge' };
     const PAGE = 250;
@@ -300,7 +305,7 @@
 
     const renderTabs = () =>
     {
-        $('tabs').innerHTML = CATEGORIES.map(c => `<button data-key="${c.key}" aria-pressed="${c.key === state.category}">${c.label}</button>`).join('');
+        $('tabs').innerHTML = CATEGORIES.map(c => `<button data-key="${c.key}" style="--cat:${c.color};--cat-ink:${c.ink}" aria-pressed="${c.key === state.category}">${c.label}</button>`).join('');
     };
 
     const renderChips = () =>
