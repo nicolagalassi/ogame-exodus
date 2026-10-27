@@ -2,7 +2,8 @@
 <html lang="it">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1626">
 <title>Exodus - classifiche unite</title>
 <!-- Data: data.js, written by fetch.mjs from the official public OGame API. Rebuild with `node fetch.mjs`. -->
 <script src="data.js"></script>
@@ -21,7 +22,7 @@
     .groups{ display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:10px; margin-bottom:18px; }
     .group{ all:unset; cursor:pointer; padding:12px 14px; background:var(--panel); border:1px solid var(--line); border-left:0; border-radius:8px;
         box-shadow:inset 3px 0 0 var(--c); transition:border-color .15s ease-out, background .15s ease-out; }
-    .group:hover{ background:var(--panel-2); }
+    @media (hover:hover){ .group:hover{ background:var(--panel-2); } }
     .group:focus-visible{ outline:2px solid var(--c); outline-offset:2px; }
     .group[aria-pressed="true"]{ border-color:var(--c); background:var(--panel-2); }
     .group b{ display:block; font-size:15px; color:var(--c); }
@@ -51,10 +52,12 @@
     th, td{ padding:7px 12px; text-align:left; border-bottom:1px solid var(--line); white-space:nowrap; }
     th{ position:sticky; top:0; background:var(--panel-2); color:var(--muted); font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.03em; }
     td.num, th.num{ text-align:right; font-variant-numeric:tabular-nums; }
-    tbody tr:hover{ background:var(--panel-2); }
+    @media (hover:hover){ tbody tr:hover{ background:var(--panel-2); } }
     td.rank{ color:var(--faint); width:1%; }
     tr.top td.rank{ color:var(--accent); font-weight:700; }
     td.name{ font-weight:550; }
+    /* on a phone the alliance, universe and original position move under the name, see below */
+    td.name .meta{ display:none; }
     .ally{ color:var(--muted); }
     .uni{ color:var(--muted); }
     .uni em{ font-style:normal; color:var(--faint); margin-left:6px; }
@@ -67,7 +70,62 @@
     .empty{ padding:40px 20px; text-align:center; color:var(--muted); background:var(--panel); border:1px solid var(--line); border-radius:8px; }
     .empty code{ color:var(--ink); }
     footer{ margin-top:22px; color:var(--faint); font-size:12px; }
-    @media (max-width:700px){ th.opt, td.opt{ display:none; } }
+    @media (max-width:640px){ th.opt, td.opt{ display:none; } }
+
+    /* ---- Phone. Rethought rather than shrunk: the ranking is what people come for, so everything above it
+       gets shorter, every control fits a thumb (44px), nothing scrolls sideways except rows that are meant
+       to, and the table loses columns instead of width. ---- */
+    @media (max-width:640px)
+    {
+        main{ padding:16px max(12px, env(safe-area-inset-right)) max(40px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); }
+        h1{ font-size:19px; }
+        .sub{ font-size:13px; margin-bottom:14px; }
+        .bar{ gap:8px; }
+        .hint{ font-size:12px; }
+
+        /* group / destination: one row that scrolls, snapping card by card, instead of a tall stack */
+        .groups{ display:flex; gap:8px; overflow-x:auto; scroll-snap-type:x mandatory; margin:0 -12px 14px; padding:2px 12px 6px; scrollbar-width:none; }
+        .groups::-webkit-scrollbar{ display:none; }
+        .group{ flex:0 0 auto; width:min(76%, 250px); scroll-snap-align:start; padding:10px 12px; }
+        .group b{ font-size:14px; }
+        .group span{ font-size:12px; }
+
+        /* segmented controls: full width; the five rankings scroll sideways if they do not fit */
+        .tabs{ display:flex; width:100%; overflow-x:auto; scrollbar-width:none; }
+        .tabs::-webkit-scrollbar{ display:none; }
+        .tabs button{ flex:1 0 auto; min-height:44px; display:flex; align-items:center; justify-content:center; padding:0 12px; }
+        #views button{ flex:1 1 0; }
+
+        /* 16px keeps iOS from zooming into the field */
+        input[type=search]{ flex:1 1 100%; min-height:44px; font-size:16px; }
+        label.check{ min-height:44px; }
+
+        .chips{ flex-wrap:nowrap; overflow-x:auto; margin:0 -12px 10px; padding:0 12px 4px; scrollbar-width:none; }
+        .chips::-webkit-scrollbar{ display:none; }
+        .chip{ flex:0 0 auto; display:flex; align-items:center; min-height:40px; padding:0 13px; font-size:13px; }
+
+        /* the table keeps three columns: rank, player (with alliance, universe and original position
+           under the name) and points */
+        th.wide, td.wide{ display:none; }
+        td.name .meta{ display:block; margin-top:2px; font-weight:400; font-size:12px; color:var(--muted); white-space:normal; }
+        td.name .meta em{ font-style:normal; color:var(--faint); }
+        th, td{ padding:9px 8px; }
+        td.name{ white-space:normal; overflow-wrap:anywhere; }
+        td.num{ font-size:13px; }
+        .ships{ display:block; font-size:11.5px; color:var(--faint); }
+        .more{ width:100%; min-height:48px; }
+    }
+    @media (min-width:641px){ .ships{ display:none; } }
+    /* touch at any width (a phone held sideways is wider than 640px): thumb-sized controls, and 16px in the
+       search field so iOS does not zoom */
+    @media (pointer:coarse)
+    {
+        .tabs button{ min-height:44px; display:inline-flex; align-items:center; }
+        .chip{ min-height:40px; display:inline-flex; align-items:center; padding:0 13px; }
+        input[type=search]{ min-height:44px; font-size:16px; }
+        label.check{ min-height:44px; }
+        .more{ min-height:48px; }
+    }
 </style>
 </head>
 <body>
@@ -165,6 +223,8 @@
                 `<span>${esc(s.note)}</span></button>`;
         }).join('');
         document.documentElement.style.setProperty('--group', group().colors[0]);
+        // on a phone the cards are a sideways strip: keep the chosen one on screen
+        $('groups').querySelector('[aria-pressed="true"]')?.scrollIntoView({ block:'nearest', inline:'nearest' });
     };
 
     const renderTabs = () =>
@@ -226,15 +286,17 @@
         const flags = status => Array.from(status).filter(f => FLAGS[f]).map(f => `<span class="flag ${f}" title="${FLAGS[f]}">${f}</span>`).join('');
 
         $('table').innerHTML =
-            `<table><thead><tr><th class="num">#</th><th>Giocatore</th><th>Alleanza</th><th>Universo</th><th class="num opt">Pos. originale</th>` +
+            `<table><thead><tr><th class="num">#</th><th>Giocatore</th><th class="wide">Alleanza</th><th class="wide">Universo</th><th class="num opt">Pos. originale</th>` +
             `<th class="num">Punti</th>${category.ships ? '<th class="num opt">Navi</th>' : ''}</tr></thead><tbody>` +
             shown.map(({ p, universe, rank }) =>
                 `<tr class="${rank <= 10 ? 'top' : ''}"><td class="num rank">${rank}</td>` +
-                `<td class="name">${esc(p[1])}${flags(p[2])}</td>` +
-                `<td class="ally">${p[3] ? esc(p[3]) : ''}</td>` +
-                `<td class="uni">${esc(universe.name)}<em>${universe.number}</em></td>` +
+                `<td class="name">${esc(p[1])}${flags(p[2])}<span class="meta">${p[3] ? esc(p[3]) + ' · ' : ''}${esc(universe.name)} <em>${universe.number}` +
+                (p[category.pos] ? `, ${fmt.format(p[category.pos])}°` : '') + `</em></span></td>` +
+                `<td class="ally wide">${p[3] ? esc(p[3]) : ''}</td>` +
+                `<td class="uni wide">${esc(universe.name)}<em>${universe.number}</em></td>` +
                 `<td class="num opt">${p[category.pos] ? fmt.format(p[category.pos]) : ''}</td>` +
-                `<td class="num">${fmt.format(p[category.score])}</td>` +
+                `<td class="num">${fmt.format(p[category.score])}` +
+                (category.ships ? `<span class="ships">${fmt.format(p[category.ships])} navi</span>` : '') + `</td>` +
                 (category.ships ? `<td class="num opt">${fmt.format(p[category.ships])}</td>` : '') + `</tr>`).join('') +
             `</tbody></table>` +
             (list.length > shown.length ? `<button class="more" id="more">Mostra altri ${fmt.format(Math.min(PAGE, list.length - shown.length))} (${fmt.format(list.length - shown.length)} rimasti)</button>` : '');
