@@ -17,6 +17,10 @@ quindi un giocatore di quei gruppi compare in entrambe le sue destinazioni.
 
 I gruppi sono scritti in `GROUPS`, in `fetch.mjs`.
 
+Per ogni destinazione la pagina mostra anche le caratteristiche annunciate (velocità, detriti, campi extra,
+materia oscura...). Gli universi di destinazione non esistono ancora nell'API, quindi sono scritte a mano in
+`SPECS`, in `index.html`.
+
 ## Dati
 
 Solo l'API pubblica ufficiale di OGame (`https://sN-it.ogame.gameforge.com/api/`): nessun login, nessuna
