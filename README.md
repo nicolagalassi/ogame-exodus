@@ -3,8 +3,11 @@
 **https://nicolagalassi.github.io/ogame-exodus/**
 
 I giocatori degli universi italiani che si fondono nell'Exodus, in un'unica classifica per gruppo di
-colore (Blu, Arancio, Verde): generale, economia, ricerca e militare, con alleanza, universo di
-provenienza e posizione originale.
+colore (Blu, Arancio, Verde) o per universo di destinazione (Zhang, Astrid, Buzz, Celestia): generale,
+economia, ricerca, militare e forme di vita, con alleanza, universo di provenienza e posizione originale.
+
+Per destinazione entrano tutti i giocatori che possono sceglierla: Zhang e Astrid raccolgono due gruppi,
+quindi un giocatore di quei gruppi compare in entrambe le sue destinazioni.
 
 | Gruppo | Universi | Destinazioni |
 |---|---|---|

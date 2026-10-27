@@ -27,7 +27,8 @@ const GROUPS =
 ];
 
 // highscore.xml?category=1 (players), by type
-const CATEGORIES = [ { type:0, key:'total' }, { type:1, key:'economy' }, { type:2, key:'research' }, { type:3, key:'military' } ];
+// type 8 is the lifeform ranking (9-11 are its sub-rankings, not used here)
+const CATEGORIES = [ { type:0, key:'total' }, { type:1, key:'economy' }, { type:2, key:'research' }, { type:3, key:'military' }, { type:8, key:'lifeform' } ];
 
 const PAUSE_MS = 400;
 
@@ -104,9 +105,9 @@ const fetchUniverse = async number =>
         }
     }
 
-    // compact rows: [id, name, status, alliance, total, totalPos, economy, economyPos, research, researchPos, military, militaryPos, ships]
+    // compact rows: [id, name, status, alliance, total, totalPos, economy, economyPos, research, researchPos, military, militaryPos, ships, lifeform, lifeformPos]
     const compact = Array.from(rows.values(), r => [r.id, r.name, r.status, r.alliance,
-        ...(r.total || [0, 0]), ...(r.economy || [0, 0]), ...(r.research || [0, 0]), ...(r.military || [0, 0]), r.ships || 0]);
+        ...(r.total || [0, 0]), ...(r.economy || [0, 0]), ...(r.research || [0, 0]), ...(r.military || [0, 0]), r.ships || 0, ...(r.lifeform || [0, 0])]);
 
     return { number, name, updated, players:compact };
 };

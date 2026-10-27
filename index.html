@@ -25,6 +25,8 @@
     .group:focus-visible{ outline:2px solid var(--c); outline-offset:2px; }
     .group[aria-pressed="true"]{ border-color:var(--c); background:var(--panel-2); }
     .group b{ display:block; font-size:15px; color:var(--c); }
+    .group .dot{ display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; vertical-align:1px; }
+    .hint{ color:var(--muted); font-size:13px; }
     .group span{ display:block; color:var(--muted); font-size:12.5px; margin-top:2px; }
 
     .bar{ display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px; margin-bottom:12px; }
@@ -71,9 +73,17 @@
 <body>
 <main>
     <h1>Exodus: classifiche unite</h1>
-    <p class="sub">I giocatori degli universi che si fondono, in un'unica classifica per gruppo. Dati dall'API pubblica di OGame.</p>
+    <p class="sub">I giocatori degli universi che si fondono, in un'unica classifica per gruppo o per universo di destinazione. Dati dall'API pubblica di OGame.</p>
 
-    <div class="groups" id="groups" role="group" aria-label="Gruppo"></div>
+    <div class="bar">
+        <div class="tabs" id="views" role="group" aria-label="Unisci per">
+            <button data-view="group">Per gruppo</button>
+            <button data-view="destination">Per destinazione</button>
+        </div>
+        <span class="hint" id="hint"></span>
+    </div>
+
+    <div class="groups" id="groups" role="group" aria-label="Classifica unita"></div>
 
     <div class="bar">
         <div class="tabs" id="tabs" role="group" aria-label="Classifica"></div>
@@ -101,13 +111,14 @@
         return;
     }
 
-    // [id, name, status, alliance, total, totalPos, economy, economyPos, research, researchPos, military, militaryPos, ships]
+    // [id, name, status, alliance, total, totalPos, economy, economyPos, research, researchPos, military, militaryPos, ships, lifeform, lifeformPos]
     const CATEGORIES =
     [
         { key:'total', label:'Generale', score:4, pos:5 },
         { key:'economy', label:'Economia', score:6, pos:7 },
         { key:'research', label:'Ricerca', score:8, pos:9 },
         { key:'military', label:'Militare', score:10, pos:11, ships:12 },
+        { key:'lifeform', label:'Forme di vita', score:13, pos:14 },
     ];
     const FLAGS = { v:'in vacanza', i:'inattivo da 7 giorni', I:'inattivo da 28 giorni', b:'bannato', o:'fuorilegge' };
     const PAGE = 250;
@@ -115,20 +126,45 @@
     const fmt = new Intl.NumberFormat('it-IT');
     const esc = text => String(text).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
 
-    const state = { group:data.groups[0].id, category:'total', query:'', activeOnly:false, hidden:new Set(), shown:PAGE };
+    // The two ways of merging. A group is a fixed set of source universes. A destination takes every group
+    // that can move there, so Zhang and Astrid draw on two groups and a player shows up under both of the
+    // destinations their group can choose.
+    const SETS =
+    {
+        group:data.groups.map(g => ({ id:g.id, title:`Gruppo ${g.name}`, label:`del gruppo ${g.name}`, colors:[g.color], universes:g.universes,
+            note:`Destinazioni: ${g.destinations.join(', ')}` })),
+        destination:[...new Set(data.groups.flatMap(g => g.destinations))]
+            .sort((a, b) => Number(a.match(/\d+/)) - Number(b.match(/\d+/)))
+            .map(d =>
+            {
+                const from = data.groups.filter(g => g.destinations.includes(d));
+                return { id:d, title:d, label:`di ${d.replace(/\s*\(.*/, '')}`, colors:from.map(g => g.color), universes:from.flatMap(g => g.universes),
+                    note:`Da: gruppo ${from.map(g => g.name).join(' + ')}` };
+            }),
+    };
+    const HINTS =
+    {
+        group:'Ogni giocatore compare una volta.',
+        destination:'Tutti i giocatori che possono scegliere quella destinazione: chi ne ha due compare in entrambe.',
+    };
 
-    const group = () => data.groups.find(g => g.id === state.group);
+    const state = { view:'group', set:SETS.group[0].id, category:'total', query:'', activeOnly:false, hidden:new Set(), shown:PAGE };
+
+    const group = () => SETS[state.view].find(s => s.id === state.set);
 
     const renderGroups = () =>
     {
-        $('groups').innerHTML = data.groups.map(g =>
+        $('views').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.view === state.view));
+        $('hint').textContent = HINTS[state.view];
+        $('groups').innerHTML = SETS[state.view].map(s =>
         {
-            const players = g.universes.reduce((sum, n) => sum + (data.universes[n]?.players.length || 0), 0);
-            return `<button class="group" style="--c:${g.color}" data-id="${g.id}" aria-pressed="${g.id === state.group}">` +
-                `<b>Gruppo ${esc(g.name)}</b><span>${g.universes.length} universi, ${fmt.format(players)} giocatori</span>` +
-                `<span>Destinazioni: ${g.destinations.map(esc).join(', ')}</span></button>`;
+            const players = s.universes.reduce((sum, n) => sum + (data.universes[n]?.players.length || 0), 0);
+            const dots = s.colors.length > 1 ? s.colors.map(c => `<i class="dot" style="background:${c}"></i>`).join('') : '';
+            return `<button class="group" style="--c:${s.colors[0]}" data-id="${esc(s.id)}" aria-pressed="${s.id === state.set}">` +
+                `<b>${dots}${esc(s.title)}</b><span>${s.universes.length} universi, ${fmt.format(players)} giocatori</span>` +
+                `<span>${esc(s.note)}</span></button>`;
         }).join('');
-        document.documentElement.style.setProperty('--group', group().color);
+        document.documentElement.style.setProperty('--group', group().colors[0]);
     };
 
     const renderTabs = () =>
@@ -179,7 +215,7 @@
 
         $('summary').textContent = state.query
             ? `${fmt.format(list.length)} risultati su ${fmt.format(all)} giocatori`
-            : `${fmt.format(all)} giocatori nella classifica ${category.label.toLowerCase()} del gruppo ${group().name}`;
+            : `${fmt.format(all)} giocatori nella classifica ${category.label.toLowerCase()} ${group().label}`;
 
         if(!list.length)
         {
@@ -215,11 +251,18 @@
 
     const render = () => { renderGroups(); renderTabs(); renderChips(); renderTable(); renderFooter(); };
 
+    $('views').addEventListener('click', e =>
+    {
+        const button = e.target.closest('button');
+        if(!button || button.dataset.view === state.view) return;
+        state.view = button.dataset.view; state.set = SETS[state.view][0].id; state.hidden.clear(); state.shown = PAGE;
+        render();
+    });
     $('groups').addEventListener('click', e =>
     {
         const button = e.target.closest('.group');
         if(!button) return;
-        state.group = button.dataset.id; state.hidden.clear(); state.shown = PAGE;
+        state.set = button.dataset.id; state.hidden.clear(); state.shown = PAGE;
         render();
     });
     $('tabs').addEventListener('click', e =>
