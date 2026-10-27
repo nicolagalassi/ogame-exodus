@@ -27,7 +27,9 @@ const GROUPS =
 ];
 
 // highscore.xml?category=1 (players), by type
-// type 8 is the lifeform ranking (9-11 are its sub-rankings, not used here)
+// Type 8 is the overall lifeform ranking. The API schema stops at type 1, so this was checked on the data:
+// on s195, for 1987 of 1988 players type 8 equals types 9 + 10 + 11 to within 2 points of rounding, so 8 is the
+// total of those three lifeform sub-rankings. What 9, 10 and 11 each are was not verified; they are not used.
 const CATEGORIES = [ { type:0, key:'total' }, { type:1, key:'economy' }, { type:2, key:'research' }, { type:3, key:'military' }, { type:8, key:'lifeform' } ];
 
 const PAUSE_MS = 400;
