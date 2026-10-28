@@ -8,7 +8,7 @@
 //         and keeps running (a hard merge): its own players are part of the merged ranking. Without '+'
 //         the destination is a new universe, which the API knows nothing about yet.
 //         The old Universe 1 has no name: '+(EN 1)'.
-//   note  optional, shown with the group
+//   note  optional, a key of the notes index.html writes with the group in each language ('chaos')
 // A destination can take groups of several communities (Yi-SWAN, Zhang and Astrid ES take AR and MX too).
 // fetch.mjs downloads every universe named here; index.html reads the map from data/index.js.
 export const MERGES =
@@ -29,7 +29,7 @@ export const MERGES =
     ],
     DE:
     [
-        { from:[171], to:['+Volans (EN 174)'], note:'Chaos merge DE + EN' },
+        { from:[171], to:['+Volans (EN 174)'], note:'chaos' },
         { from:[199, 260, 261, 262], to:['Eclipse (DE 286)', 'Falcon (DE 287)'] },
         { from:[266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277], to:['Galileo (DE 288)', 'Hubble (DE 289)', 'Ishtar (DE 290)'] },
         { from:[258, 259], to:['Eclipse (DE 286)', 'Falcon (DE 287)', 'Galileo (DE 288)', 'Hubble (DE 289)', 'Ishtar (DE 290)'] },
@@ -40,7 +40,7 @@ export const MERGES =
     ],
     EN:
     [
-        { from:['DE 171'], to:['+Volans (EN 174)'], note:'Chaos merge DE + EN' },
+        { from:['DE 171'], to:['+Volans (EN 174)'], note:'chaos' },
         { from:[122, 190, 198, 261], to:['+(EN 1)', 'Yi–SWAN (EN 280)', 'Zhang (EN 281)', 'Astrid (EN 282)'] },
         { from:[262, 263, 264, 265, 266, 267, 268, 269, 270, 271], to:['+(EN 1)', 'Yi–SWAN (EN 280)', 'Zhang (EN 281)', 'Astrid (EN 282)', 'Buzz (EN 283)'] },
     ],

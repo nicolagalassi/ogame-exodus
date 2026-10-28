@@ -74,6 +74,7 @@
     .group b{ display:flex; align-items:center; gap:10px; margin:0 0 9px; font:800 42px/.9 var(--display); text-transform:uppercase; }
     .group .sw{ display:inline-flex; gap:3px; }
     .group .sw i{ width:10px; height:10px; background:var(--sw); }
+    .group .sw i.foreign{ background:none; box-shadow:inset 0 0 0 2px var(--sw); }
     .group > span{ display:block; color:var(--muted); font-size:13px; }
     .group > span + span{ color:var(--faint); }
     .group[aria-pressed="true"] > span + span{ color:var(--muted); }
@@ -323,7 +324,10 @@ addEventListener('DOMContentLoaded', () =>
             spec:{ show:'Mostra caratteristiche', showShort:'Mostra', close:'Chiudi', peaceful:'pacifica', hostile:'ostile', holding:'staz.', fields:'campi', dm:'MO' },
             specFields:{ economy:'Economia', research:'Ricerca', peaceful:'Flotta pacifica', holding:'Stazionamento', hostile:'Flotta ostile', galaxies:'Galassie',
                 debris:'Detriti', defenceDebris:'Difese nei detriti', fields:'Campi extra', deut:'Consumo deuterio', dm:'Materia Oscura' },
-            specCommon:'ACS ON · galassie e sistemi circolari · sonde con stiva ON · deuterio nei detriti ON · ignora sistemi vuoti e inattivi per tempi e consumi del volo ON.',
+            specSwitches:{ acs:'ACS', circular:'galassie e sistemi circolari', probeCargo:'sonde con stiva', deutDebris:'deuterio nei detriti',
+                ignoreEmpty:'ignora sistemi vuoti per tempi e consumi del volo', ignoreInactive:'ignora sistemi inattivi per tempi e consumi del volo' },
+            notes:{ chaos:'fusione mista DE + EN; chi ha già un account su Volans può tenerli entrambi' },
+            title:'Fusioni OG 2026',
             unavailable:'Dati non disponibili', loading:'Caricamento della classifica…', noMatch:'Nessun giocatore corrisponde ai filtri.',
             results:(n, all) => `${n} risultati su ${all} giocatori`, summary:(all, category, label) => `${all} giocatori nella classifica ${category.toLowerCase()} ${label}`,
             head:{ player:'Giocatore', alliance:'Alleanza', universe:'Universo', pos:'Pos. orig.', posTitle:'Posizione originale', points:'Punti', ships:'Navi' },
@@ -351,7 +355,10 @@ addEventListener('DOMContentLoaded', () =>
             spec:{ show:'Show settings', showShort:'Show', close:'Close', peaceful:'peaceful', hostile:'hostile', holding:'holding', fields:'fields', dm:'DM' },
             specFields:{ economy:'Economy', research:'Research', peaceful:'Peaceful fleet', holding:'Holding', hostile:'Hostile fleet', galaxies:'Galaxies',
                 debris:'Debris', defenceDebris:'Defence to debris', fields:'Extra fields', deut:'Deuterium usage', dm:'Dark Matter' },
-            specCommon:'ACS ON · circular galaxies and systems · probes with cargo ON · deuterium in debris ON · ignore empty and inactive systems for flight times and usage ON.',
+            specSwitches:{ acs:'ACS', circular:'circular galaxies and systems', probeCargo:'probes with cargo', deutDebris:'deuterium in debris',
+                ignoreEmpty:'ignore empty systems for flight times and usage', ignoreInactive:'ignore inactive systems for flight times and usage' },
+            notes:{ chaos:'chaos merge DE + EN; players who already have a Volans account may keep both' },
+            title:'OG Merges 2026',
             unavailable:'Data not available', loading:'Loading the ranking…', noMatch:'No player matches the filters.',
             results:(n, all) => `${n} results out of ${all} players`, summary:(all, category, label) => `${all} players in the ${category.toLowerCase()} ranking ${label}`,
             head:{ player:'Player', alliance:'Alliance', universe:'Universe', pos:'Orig. pos.', posTitle:'Original position', points:'Points', ships:'Ships' },
@@ -371,6 +378,7 @@ addEventListener('DOMContentLoaded', () =>
         fmt = new Intl.NumberFormat(t.locale);
         try { regions = new Intl.DisplayNames([lang], { type:'region' }); } catch(e) { regions = null; }
         document.documentElement.lang = lang;
+        document.title = t.title;
         // the words written in the page itself
         $('subtitle').textContent = t.subtitle;
         $('views').setAttribute('aria-label', t.views);
@@ -430,7 +438,10 @@ addEventListener('DOMContentLoaded', () =>
     const country = c => c === 'EN' ? t.uk : regions?.of(c) || c;
     const number = key => Number(key.split(' ')[1]);
     const short = key => key.startsWith(state.community + ' ') ? String(number(key)) : key;
+    const named = key => Boolean(data.universes[key]?.name || data.destinations[key]?.name);
     const universeName = key => data.universes[key]?.name || data.destinations[key]?.name || t.universe(number(key));
+    // what goes after the name: the number, or for a nameless universe ('Universo 1') only the community when it is another one
+    const tag = key => named(key) ? short(key) : key.startsWith(state.community + ' ') ? '' : key.split(' ')[0];
     const destinationName = key => `${data.destinations[key].name || t.universe(number(key))} (${key})`;
     const existing = key => data.destinations[key]?.existing;
 
@@ -445,9 +456,9 @@ addEventListener('DOMContentLoaded', () =>
         const groups = data.communities[community];
         const groupName = g => t.groupOf(t.colors[g.name], g.community === community ? '' : g.community);
         return {
-            group:groups.map(g => ({ id:g.id, name:t.colors[g.name], label:t.groupLabel(t.colors[g.name]), colors:[g.color],
+            group:groups.map(g => ({ id:g.id, name:t.colors[g.name], label:t.groupLabel(t.colors[g.name]), colors:[g.color], swatches:[{ color:g.color }],
                 universes:[...new Set([...g.universes, ...g.destinations.filter(existing)])],
-                note:`${t.destinations}: ${g.destinations.map(destinationName).join(', ')}${g.note ? ' · ' + g.note : ''}` })),
+                note:`${t.destinations}: ${g.destinations.map(destinationName).join(', ')}${g.note ? ' · ' + (t.notes[g.note] || g.note) : ''}` })),
             destination:[...new Set(groups.flatMap(g => g.destinations))]
                 .sort((a, b) => (a.startsWith(community + ' ') ? 0 : 1) - (b.startsWith(community + ' ') ? 0 : 1) || number(a) - number(b))
                 .map(d =>
@@ -458,23 +469,65 @@ addEventListener('DOMContentLoaded', () =>
                         .filter((g, i, all) => all.findIndex(o => o.universes.join() === g.universes.join()) === i)
                         .sort((a, b) => (a.community === community ? 0 : 1) - (b.community === community ? 0 : 1));
                     const universes = [...new Set([...(existing(d) ? [d] : []), ...from.flatMap(g => g.universes)])];
+                    // groups of other communities reuse the same colours (every community starts at blue), so
+                    // their swatch is hollow and their share of the bar dimmed
+                    const swatches = from.map(g => ({ color:g.color, foreign:g.community !== community }))
+                        .filter((s, i, all) => all.findIndex(o => o.color === s.color && o.foreign === s.foreign) === i);
                     return { id:d, server:`${d} ${existing(d) ? t.existing : t.new}`, name, label:t.destinationLabel(name),
-                        colors:[...new Set(from.map(g => g.color))], universes,
+                        colors:from.map(g => g.color), swatches, universes,
                         note:`${t.from}: ${existing(d) ? name + ' + ' : ''}${from.map(groupName).join(' + ')}` };
                 }),
         };
     };
     // The new destination universes do not exist yet, so the API has nothing on them: these are the announced
-    // settings, typed in by hand, for the ones that were announced. Keys match the destinations in data.destinations.
+    // settings, typed in by hand from each community's announcement, for the ones that were announced. Keys
+    // match the destinations in data.destinations. Speeds as written in the announcement; deut is the factor
+    // of deuterium usage, dm the dark matter at the start; a setting an announcement leaves out is left out.
+    // The switches (acs ... ignoreInactive) are true / false.
     const SPEC_FIELDS = [ 'economy', 'research', 'peaceful', 'holding', 'hostile', 'galaxies', 'debris', 'defenceDebris', 'fields', 'deut', 'dm' ];
+    const SPEC_SWITCHES = [ 'acs', 'circular', 'probeCargo', 'deutDebris', 'ignoreEmpty', 'ignoreInactive' ];
+    const IT = { economy:'x10', research:'x20', galaxies:'8', debris:'50%', defenceDebris:'0%', deut:0.5,
+        acs:true, circular:true, probeCargo:true, deutDebris:true, ignoreEmpty:true, ignoreInactive:true };
+    const EN = { economy:'x10', research:'x20', defenceDebris:'0%', fields:'+30', deut:0.5, dm:8000,
+        acs:true, circular:true, probeCargo:false, deutDebris:true, ignoreEmpty:false, ignoreInactive:false };
+    const ES = { economy:'x8', galaxies:'7', debris:'70%', defenceDebris:'0%', fields:'+30', deut:0.5, dm:8000, style:'Balanced',
+        acs:true, circular:true, probeCargo:false, deutDebris:true, ignoreEmpty:true, ignoreInactive:true };
+    const FR = { research:'x20', galaxies:'9', defenceDebris:'0%', fields:'+30', deut:0.5, dm:8000,
+        acs:true, probeCargo:false, deutDebris:true };
+    const DE = { economy:'x8', research:'x16', defenceDebris:'0%', fields:'+30', deut:0.5, dm:25000,
+        acs:true, circular:true, probeCargo:false, deutDebris:true, ignoreEmpty:false, ignoreInactive:false };
     const SPECS =
     {
-        'IT 281': { style:'Miner',    economy:'x10', research:'x20', peaceful:'x2', holding:'x2', hostile:'x1', galaxies:'8', debris:'50%', defenceDebris:'0%', fields:'+30', deut:0.5, dm:8000 },
-        'IT 282': { style:'Balanced', economy:'x10', research:'x20', peaceful:'x5', holding:'x3', hostile:'x2', galaxies:'8', debris:'50%', defenceDebris:'0%', fields:'+25', deut:0.5, dm:8000 },
-        'IT 283': { style:'Fleeter',  economy:'x10', research:'x20', peaceful:'x6', holding:'x4', hostile:'x3', galaxies:'8', debris:'50%', defenceDebris:'0%', fields:'+25', deut:0.5, dm:25000 },
-        'IT 284': { style:'Balanced', economy:'x10', research:'x20', peaceful:'x4', holding:'x2', hostile:'x2', galaxies:'8', debris:'50%', defenceDebris:'0%', fields:'+30', deut:0.5, dm:25000 },
+        'IT 281': { ...IT, style:'Miner',    peaceful:'x2', holding:'x2', hostile:'x1', fields:'+30', dm:8000 },
+        'IT 282': { ...IT, style:'Balanced', peaceful:'x5', holding:'x3', hostile:'x2', fields:'+25', dm:8000 },
+        'IT 283': { ...IT, style:'Fleeter',  peaceful:'x6', holding:'x4', hostile:'x3', fields:'+25', dm:25000 },
+        'IT 284': { ...IT, style:'Balanced', peaceful:'x4', holding:'x2', hostile:'x2', fields:'+30', dm:25000 },
+
+        'EN 280': { ...EN, style:'Balanced', economy:'x8', research:'x16', peaceful:'x4', holding:'x2', hostile:'x2', galaxies:'6', debris:'70%', acs:false },
+        'EN 281': { ...EN, style:'Fleeter',  peaceful:'x5', holding:'x5', hostile:'x5', galaxies:'6', debris:'60%' },
+        'EN 282': { ...EN, style:'Miner',    peaceful:'x4', holding:'x2', hostile:'x2', galaxies:'7', debris:'50%' },
+        'EN 283': { ...EN, style:'Balanced', peaceful:'x6', holding:'x3', hostile:'x3', galaxies:'7', debris:'60%' },
+
+        // announced on the Spanish board, which AR and MX share; Umbra 173 is the new AR universe
+        'AR 173': { ...ES, research:'x16', peaceful:'x8', holding:'x2', hostile:'x2', galaxies:'5' },
+        'ES 280': { ...ES, research:'x8',  peaceful:'x8', holding:'x4', hostile:'x4' },
+        'ES 281': { ...ES, research:'x8',  peaceful:'x8', holding:'x2', hostile:'x2' },
+        'ES 282': { ...ES, research:'x8',  peaceful:'x8', holding:'x2', hostile:'x1' },
+
+        'FR 286': { ...FR, economy:'x10', peaceful:'x1', holding:'x1', hostile:'x1', debris:'70%', ignoreEmpty:false, ignoreInactive:false },
+        'FR 287': { ...FR, economy:'x10', peaceful:'x2', holding:'x2', hostile:'x2', debris:'50%', ignoreEmpty:true,  ignoreInactive:true },
+        'FR 288': { ...FR, economy:'x10', peaceful:'x3', holding:'x3', hostile:'x3', debris:'50%', ignoreEmpty:false, ignoreInactive:false },
+        'FR 289': { ...FR, economy:'x10', peaceful:'x5', holding:'x5', hostile:'x5', debris:'60%', ignoreEmpty:true,  ignoreInactive:true },
+        'FR 290': { ...FR, economy:'x8', research:'x16', peaceful:'x2', holding:'x2', hostile:'x2', debris:'60%', ignoreEmpty:false, ignoreInactive:false },
+
+        'DE 286': { ...DE, economy:'x10', research:'x20', peaceful:'x2', holding:'x2', hostile:'x2', galaxies:'8', debris:'70%', deut:0.6 },
+        'DE 287': { ...DE, economy:'x10', research:'x20', peaceful:'x6', holding:'x8', hostile:'x4', galaxies:'7', debris:'30%' },
+        'DE 288': { ...DE, peaceful:'x2', holding:'x2', hostile:'x2', galaxies:'7', debris:'70%' },
+        'DE 289': { ...DE, peaceful:'x4', holding:'x4', hostile:'x4', galaxies:'7', debris:'70%' },
+        'DE 290': { ...DE, peaceful:'x6', holding:'x6', hostile:'x6', galaxies:'7', debris:'80%', defenceDebris:'30%' },
     };
-    const specValue = (spec, key) => key === 'deut' ? fmt.format(spec.deut) + 'x' : key === 'dm' ? fmt.format(spec.dm) : spec[key];
+    // dark matter always with its thousands separator: Intl leaves 8000 bare in Italian and Spanish
+    const specValue = (spec, key) => key === 'deut' ? fmt.format(spec.deut) + 'x' : key === 'dm' ? new Intl.NumberFormat(t.locale, { useGrouping:'always' }).format(spec.dm) : spec[key];
 
     // the destinations relevant to what is selected: the one chosen, or the ones a group can move to
     const renderSpecs = () =>
@@ -483,13 +536,14 @@ addEventListener('DOMContentLoaded', () =>
         $('specs').innerHTML = names.filter(n => SPECS[n]).map(n =>
         {
             const spec = SPECS[n];
+            const switches = SPEC_SWITCHES.filter(key => key in spec).map(key => `${t.specSwitches[key]} ${spec[key] ? 'ON' : 'OFF'}`).join(' · ');
             // closed by default everywhere, so the ranking stays near the top. The summary says what is
             // inside and carries what sets the destinations apart (fleet speeds, holding, fields, dark matter).
-            return `<details class="spec"><summary><span class="specHead"><span class="specTitle"><b>${esc(destinationName(n))}</b> <span>${esc(spec.style)}</span></span>` +
+            return `<details class="spec"><summary><span class="specHead"><span class="specTitle"><b>${esc(destinationName(n))}</b>${spec.style ? ` <span>${esc(spec.style)}</span>` : ''}</span>` +
                 `<em>${t.spec.peaceful} ${esc(spec.peaceful)} · ${t.spec.hostile} ${esc(spec.hostile)} · ${t.spec.holding} ${esc(spec.holding)} · ${t.spec.fields} ${esc(spec.fields)} · ${t.spec.dm} ${esc(specValue(spec, 'dm'))}</em></span>` +
                 `<i class="specToggle" data-show="${esc(t.spec.show)}" data-short="${esc(t.spec.showShort)}" data-close="${esc(t.spec.close)}"></i></summary><dl>` +
-                SPEC_FIELDS.map(key => `<div><dt>${t.specFields[key]}</dt><dd>${esc(specValue(spec, key))}</dd></div>`).join('') +
-                `</dl><p class="specCommon">${esc(t.specCommon)}</p></details>`;
+                SPEC_FIELDS.filter(key => key in spec).map(key => `<div><dt>${t.specFields[key]}</dt><dd>${esc(specValue(spec, key))}</dd></div>`).join('') +
+                `</dl><p class="specCommon">${esc(switches)}</p></details>`;
         }).join('');
     };
 
@@ -523,10 +577,11 @@ addEventListener('DOMContentLoaded', () =>
         $('groups').innerHTML = SETS[state.view].map(s =>
         {
             const count = s.universes.reduce((sum, n) => sum + (data.universes[n]?.players || 0), 0);
-            // a destination fed by several groups gets a bar split in their colours
-            const bar = s.colors.length > 1 ? `linear-gradient(90deg,${s.colors.map((c, i) => `${c} ${i * 100 / s.colors.length}% ${(i + 1) * 100 / s.colors.length}%`).join(',')})` : s.colors[0];
+            // a destination fed by several groups gets a bar split in their colours, dimmed for other communities
+            const shares = s.swatches.map(w => w.foreign ? `color-mix(in srgb, ${w.color} 40%, var(--bg))` : w.color);
+            const bar = shares.length > 1 ? `linear-gradient(90deg,${shares.map((c, i) => `${c} ${i * 100 / shares.length}% ${(i + 1) * 100 / shares.length}%`).join(',')})` : shares[0];
             return `<button class="group" style="--c:${s.colors[0]};--bar:${bar}" data-id="${esc(s.id)}" aria-pressed="${s.id === state.set}">` +
-                `<b><span class="sw" aria-hidden="true">${s.colors.map(c => `<i style="--sw:${c}"></i>`).join('')}</span>${esc(s.name)}</b>` +
+                `<b><span class="sw" aria-hidden="true">${s.swatches.map(w => `<i${w.foreign ? ' class="foreign"' : ''} style="--sw:${w.color}"></i>`).join('')}</span>${esc(s.name)}</b>` +
                 `<span>${s.server ? esc(s.server) + ' · ' : ''}${t.count(s.universes.length, fmt.format(count))}</span>` +
                 `<span>${esc(s.note)}</span></button>`;
         }).join('');
@@ -545,7 +600,7 @@ addEventListener('DOMContentLoaded', () =>
     {
         $('chips').innerHTML = group().universes.map(n =>
         {
-            const label = esc(short(n)) + (state.view === 'group' && existing(n) ? ` · ${t.destinationChip}` : '');
+            const label = esc(tag(n)) + (state.view === 'group' && existing(n) ? ` · ${t.destinationChip}` : '');
             if(!data.universes[n] || failed.has(n)) return `<button class="chip gone" disabled title="${t.unavailable}">${esc(universeName(n))}<small>${label}</small></button>`;
             return `<button class="chip" data-n="${esc(n)}" aria-pressed="${!state.hidden.has(n)}">${esc(universeName(n))}<small>${label}</small></button>`;
         }).join('');
@@ -560,7 +615,7 @@ addEventListener('DOMContentLoaded', () =>
         for(const n of group().universes)
         {
             if(state.hidden.has(n) || !players[n]) continue;
-            const universe = { name:universeName(n), number:short(n) };
+            const universe = { name:universeName(n), number:tag(n) };
 
             for(const p of players[n])
             {
@@ -609,8 +664,8 @@ addEventListener('DOMContentLoaded', () =>
             `<th class="num opt c-pos" title="${t.head.posTitle}">${t.head.pos}</th><th class="num c-pts">${t.head.points}</th>${category.ships ? `<th class="num opt c-ships">${t.head.ships}</th>` : ''}</tr></thead><tbody>` +
             shown.map(({ p, universe, rank }) =>
                 `<tr class="${rank <= 3 ? 'top podium' : rank <= 10 ? 'top' : ''}"><td class="num rank">${rank}</td>` +
-                `<td class="name">${esc(p[1])}${flags(p[2])}<span class="meta">${p[3] ? esc(p[3]) + ' · ' : ''}${esc(universe.name)} <em>${esc(universe.number)}` +
-                (p[category.pos] ? `, ${fmt.format(p[category.pos])}°` : '') + `</em></span></td>` +
+                `<td class="name">${esc(p[1])}${flags(p[2])}<span class="meta">${p[3] ? esc(p[3]) + ' · ' : ''}${esc(universe.name)} <em>` +
+                esc([universe.number, p[category.pos] ? fmt.format(p[category.pos]) + '°' : ''].filter(Boolean).join(', ')) + `</em></span></td>` +
                 `<td class="ally wide">${p[3] ? esc(p[3]) : ''}</td>` +
                 `<td class="uni wide">${esc(universe.name)}<em>${esc(universe.number)}</em></td>` +
                 `<td class="num opt">${p[category.pos] ? fmt.format(p[category.pos]) : ''}</td>` +
