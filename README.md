@@ -31,7 +31,7 @@ nell'API. Per le altre community le caratteristiche non ci sono.
 
 Solo l'API pubblica ufficiale di OGame (`https://sN-xx.ogame.gameforge.com/api/`): nessun login, nessuna
 pagina del gioco. Il flusso `.github/workflows/pages.yml` scarica i file ogni 3 ore, una richiesta alla
-volta (circa 330 universi, una ventina di minuti), ricostruisce `data/` e pubblica la pagina. Gameforge
+volta (circa 330 universi, circa mezz'ora), ricostruisce `data/` e pubblica la pagina. Gameforge
 aggiorna le classifiche circa una volta all'ora. Gli amministratori del gioco sono esclusi. Un universo che
 non risponde viene saltato e segnalato nella pagina, senza fermare il resto.
 
@@ -43,7 +43,7 @@ Aggiornamento a mano: Actions → "Exodus rankings on Pages" → Run workflow.
 ## In locale
 
 ```
-node fetch.mjs      # scrive data/, una ventina di minuti
+node fetch.mjs      # scrive data/, circa mezz'ora
 ```
 
 poi apri `index.html` nel browser.

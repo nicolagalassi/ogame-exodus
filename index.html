@@ -207,11 +207,13 @@
         td.name .meta em{ font:400 12px var(--mono); font-style:normal; color:var(--faint); white-space:nowrap; }
         th, td{ padding:10px 8px; }
         td.rank{ padding-right:10px; }
-        th.c-rank{ width:46px; } th.c-pts{ width:136px; }
+        th.c-rank{ width:46px; } th.c-pts{ width:150px; }
         tr.podium td.rank{ font-size:28px; }
         tr.podium td.name{ font-size:16px; }
         td.name{ white-space:normal; overflow-wrap:anywhere; }
         td.num{ font-size:13px; }
+        /* scores reach hundreds of billions in the fast universes: smaller rather than cut */
+        td.points{ font-size:12px; text-overflow:clip; }
         .ships{ display:block; margin-top:3px; font-size:11.5px; color:var(--faint); }
         .spec summary em{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
         .specToggle::after{ content:'Mostra'; }
@@ -361,7 +363,8 @@ addEventListener('DOMContentLoaded', () =>
                     const destination = data.destinations[d];
                     // the same universes can be listed under two communities (Sombrero DE 171 under DE and EN): once is enough
                     const from = allGroups.filter(g => g.destinations.includes(d))
-                        .filter((g, i, all) => all.findIndex(o => o.universes.join() === g.universes.join()) === i);
+                        .filter((g, i, all) => all.findIndex(o => o.universes.join() === g.universes.join()) === i)
+                        .sort((a, b) => (a.community === community ? 0 : 1) - (b.community === community ? 0 : 1));
                     const universes = [...new Set([...(destination.existing ? [d] : []), ...from.flatMap(g => g.universes)])];
                     return { id:d, server:d + (destination.existing ? ' esistente' : ' nuovo'), name:destination.name, label:`di ${destination.name}`,
                         colors:[...new Set(from.map(g => g.color))], universes,
