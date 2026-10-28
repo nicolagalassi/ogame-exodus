@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0d0c0a">
 <title>Fusioni OG 2026</title>
+<!-- published on GitHub Pages and shown under ovalue.net/fusion/ through a Netlify proxy (ovalue's _redirects) -->
+<link rel="canonical" href="https://ovalue.net/fusion/">
 <!-- Data: data/, written by fetch.mjs from the official public OGame API. Rebuild with `node fetch.mjs`.
      data/index.js is the merge map and the universe list; each universe's players load when a ranking needs them. -->
 <script src="data/index.js" defer></script>
@@ -33,10 +35,13 @@
     ::selection{ background:var(--accent); color:var(--bg); }
     main, body > footer{ max-width:1120px; margin:0 auto; padding:34px 24px 64px; }
 
-    /* the language switch sits in the top corner of the masthead, clear of the kicker */
+    /* the way back to OValue, which shows this page under /fusion/, on the line of the language switch */
+    .home{ display:inline-block; margin:0 0 14px; font:600 12px/1 var(--mono); letter-spacing:.08em; text-transform:uppercase; color:var(--muted); text-decoration:none; }
+    .home:hover{ color:var(--ink); }
+    .home:focus-visible{ outline:1px solid var(--ink); outline-offset:3px; }
+    /* the language switch sits in the top corner of the masthead */
     .mast .lang{ position:absolute; top:-8px; right:0; width:auto; gap:14px; }
     .mast .lang button{ font:600 12px/1 var(--mono); letter-spacing:.08em; }
-    .kicker{ padding-right:90px; }
     .mast{ position:relative; padding-bottom:18px; margin-bottom:22px; border-bottom:2px solid var(--accent); transition:border-color .3s ease-out; }
     .kicker{ margin:0 0 10px; font:500 12px/1 var(--mono); letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
     h1{ margin:0; font:900 clamp(60px, 10vw, 96px)/.82 var(--display); letter-spacing:-.005em; text-transform:uppercase; text-wrap:balance; }
@@ -258,6 +263,7 @@
 <body>
 <main>
     <header class="mast">
+        <a class="home" id="home" href="https://ovalue.net/">← OValue</a>
         <p class="kicker" id="kicker">OGame · 2026</p>
         <h1>Exodus <span id="subtitle"></span></h1>
         <div class="tabs lang" id="lang" role="group" aria-label="Lingua / Language"><button data-lang="it">IT</button><button data-lang="en">EN</button></div>
@@ -306,7 +312,7 @@ addEventListener('DOMContentLoaded', () =>
     {
         it:
         {
-            locale:'it-IT', kicker:'Fusioni 2026', subtitle:'unione classifiche', noData:'Nessun dato. Esegui <code>node fetch.mjs</code> e ricarica la pagina.',
+            locale:'it-IT', kicker:'Fusioni 2026', subtitle:'unione classifiche', back:'Torna a OValue', noData:'Nessun dato. Esegui <code>node fetch.mjs</code> e ricarica la pagina.',
             views:'Unisci per', byGroup:'Per gruppo', byDestination:'Per destinazione', merged:'Classifica unita', ranking:'Classifica', universesLabel:'Universi',
             search:'Cerca giocatore o alleanza', hideInactive:'Nascondi inattivi e bannati', hideVacation:'Nascondi in vacanza',
             categories:{ total:'Generale', economy:'Economia', research:'Ricerca', military:'Militare', lifeform:'Forme di vita' },
@@ -338,7 +344,7 @@ addEventListener('DOMContentLoaded', () =>
         },
         en:
         {
-            locale:'en-GB', kicker:'Merges 2026', subtitle:'merged rankings', noData:'No data. Run <code>node fetch.mjs</code> and reload the page.',
+            locale:'en-GB', kicker:'Merges 2026', subtitle:'merged rankings', back:'Back to OValue', noData:'No data. Run <code>node fetch.mjs</code> and reload the page.',
             views:'Merge by', byGroup:'By group', byDestination:'By destination', merged:'Merged ranking', ranking:'Ranking', universesLabel:'Universes',
             search:'Search player or alliance', hideInactive:'Hide inactive and banned', hideVacation:'Hide on vacation',
             categories:{ total:'Points', economy:'Economy', research:'Research', military:'Military', lifeform:'Lifeforms' },
@@ -383,6 +389,7 @@ addEventListener('DOMContentLoaded', () =>
         document.title = t.title;
         // the words written in the page itself
         $('subtitle').textContent = t.subtitle;
+        $('home').textContent = `← ${t.back}`;
         $('views').setAttribute('aria-label', t.views);
         $('views').querySelector('[data-view=group]').textContent = t.byGroup;
         $('views').querySelector('[data-view=destination]').textContent = t.byDestination;

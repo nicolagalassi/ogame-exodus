@@ -1,6 +1,6 @@
 # OGame Exodus: classifiche unite
 
-**https://nicolagalassi.github.io/ogame-exodus/**
+**https://ovalue.net/fusion/** (pubblicato su GitHub Pages, https://nicolagalassi.github.io/ogame-exodus/, e mostrato da OValue)
 
 I giocatori degli universi che si fondono a novembre-dicembre 2026, in tutte le community (AR, BR, CZ, DE,
 DK, EN, ES, FR, GR, HR, HU, IT, JP, MX, NL, PL, PT, RO, RU, SI, SK, TR, TW, US), in un'unica classifica per
