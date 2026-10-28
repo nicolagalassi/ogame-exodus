@@ -69,7 +69,7 @@ const fetchUniverse = async (community, number) =>
 {
     const base = `https://s${number}-${community.toLowerCase()}.ogame.gameforge.com/api`;
     const server = await get(`${base}/serverData.xml`);
-    const name = decode((server.match(/<name>([^<]*)<\/name>/) || [])[1] || `Universo ${number}`);
+    const name = decode((server.match(/<name>([^<]*)<\/name>/) || [])[1] || ''); // the old Universe 1 has none: the page names it by number
 
     const players = new Map(tags(await get(`${base}/players.xml`), 'player').map(p => [p.id, p]));
     const alliances = new Map(tags(await get(`${base}/alliances.xml`), 'alliance').map(a => [a.id, a]));
@@ -112,11 +112,12 @@ const fetchUniverse = async (community, number) =>
 };
 
 // The merge map as index.html uses it. Universes are keyed 'IT 264' (the same number exists in several
-// communities); a group gets a colour and a name, the same order in every community.
-const COLORS = [ ['Blu', '#5aa9f0'], ['Arancio', '#efa33c'], ['Verde', '#4fc97e'], ['Viola', '#b48cff'], ['Rosa', '#f07ab4'] ];
+// communities); a group gets a colour and its key (blue, orange...: index.html names it in each language), the same
+// order in every community.
+const COLORS = [ ['blue', '#5aa9f0'], ['orange', '#efa33c'], ['green', '#4fc97e'], ['purple', '#b48cff'], ['pink', '#f07ab4'] ];
 const destination = text =>
 {
-    const [, plus, name, server] = text.match(/^(\+?)(.*) \(([A-Z]{2} \d+)\)$/);
+    const [, plus, name, server] = text.match(/^(\+?)(.*?) ?\(([A-Z]{2} \d+)\)$/);
     return { server, name, existing:plus === '+' };
 };
 

@@ -6,9 +6,11 @@ I giocatori degli universi che si fondono a novembre-dicembre 2026, in tutte le 
 DK, EN, ES, FR, GR, HR, HU, IT, JP, MX, NL, PL, PT, RO, RU, SI, SK, TR, TW, US), in un'unica classifica per
 gruppo o per universo di destinazione: generale, economia, ricerca, militare e forme di vita, con alleanza,
 universo di provenienza e posizione originale. La community si sceglie in alto; un link con `?c=DE` apre
-direttamente quella.
+direttamente quella. La pagina è in italiano e in inglese (IT / EN in alto a destra, oppure `?lang=en`): di
+partenza segue la lingua del browser, italiano per i browser italiani e inglese per tutti gli altri.
 
-- **Per gruppo**: gli universi che condividono le stesse destinazioni; ogni giocatore compare una volta.
+- **Per gruppo**: gli universi che condividono le stesse destinazioni, più le destinazioni che esistono già
+  (il gruppo DE di Sombrero 171 mostra anche Volans EN 174); ogni giocatore compare una volta.
 - **Per destinazione**: tutti i giocatori che possono sceglierla, anche di altre community (Yi–SWAN,
   Zhang e Astrid ES raccolgono anche gruppi AR e MX; Volans EN anche Sombrero DE). Se la destinazione è un
   universo che esiste già (fusione forzata, per esempio Taurus GR 120), entrano anche i suoi giocatori. Chi
