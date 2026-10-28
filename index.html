@@ -7,6 +7,8 @@
 <title>Fusioni OG 2026</title>
 <!-- published on GitHub Pages and shown under ovalue.net/fusion/ through a Netlify proxy (ovalue's _redirects) -->
 <link rel="canonical" href="https://ovalue.net/fusion/">
+<!-- ovalue.net/fusion without the slash would resolve data/ against the site root: add the slash first -->
+<script>if(location.pathname.endsWith('/fusion')) location.replace(location.pathname + '/' + location.search + location.hash);</script>
 <!-- Data: data/, written by fetch.mjs from the official public OGame API. Rebuild with `node fetch.mjs`.
      data/index.js is the merge map and the universe list; each universe's players load when a ranking needs them. -->
 <script src="data/index.js" defer></script>
