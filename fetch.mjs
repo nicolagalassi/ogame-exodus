@@ -70,6 +70,17 @@ const fetchUniverse = async (community, number) =>
     const base = `https://s${number}-${community.toLowerCase()}.ogame.gameforge.com/api`;
     const server = await get(`${base}/serverData.xml`);
     const name = decode((server.match(/<name>([^<]*)<\/name>/) || [])[1] || ''); // the old Universe 1 has none: the page names it by number
+    const setting = tag => { const value = (server.match(new RegExp(`<${tag}>([^<]*)</${tag}>`)) || [])[1]; return value === undefined ? null : Number(value); };
+    // the settings a destination card shows (index.html, SPEC_FIELDS); debris comes as a factor, shown as a percentage
+    const settings =
+    {
+        economy:setting('speed'), research:setting('researchDurationDivisor'),
+        peaceful:setting('speedFleetPeaceful'), holding:setting('speedFleetHolding'), hostile:setting('speedFleetWar'),
+        galaxies:setting('galaxies'), debris:Math.round(setting('debrisFactor') * 100), defenceDebris:Math.round(setting('debrisFactorDef') * 100),
+        fields:setting('bonusFields'), deut:setting('globalDeuteriumSaveFactor'), dm:setting('darkMatterNewAcount'),
+        acs:setting('acs'), donut:setting('donutGalaxy') && setting('donutSystem'), probeCargo:setting('probeCargo'),
+        deutInDebris:setting('deuteriumInDebris'), ignoreSystems:setting('fleetIgnoreEmptySystems') && setting('fleetIgnoreInactiveSystems'),
+    };
 
     const players = new Map(tags(await get(`${base}/players.xml`), 'player').map(p => [p.id, p]));
     const alliances = new Map(tags(await get(`${base}/alliances.xml`), 'alliance').map(a => [a.id, a]));
@@ -108,7 +119,7 @@ const fetchUniverse = async (community, number) =>
     const compact = Array.from(rows.values(), r => [r.id, r.name, r.status, r.alliance,
         ...(r.total || [0, 0]), ...(r.economy || [0, 0]), ...(r.research || [0, 0]), ...(r.military || [0, 0]), r.ships || 0, ...(r.lifeform || [0, 0])]);
 
-    return { name, updated, players:compact };
+    return { name, updated, settings, players:compact };
 };
 
 // The merge map as index.html uses it. Universes are keyed 'IT 264' (the same number exists in several
@@ -158,10 +169,10 @@ const worker = async () =>
         const server = `s${number}-${community.toLowerCase()}`;
         try
         {
-            const { name, updated, players } = await fetchUniverse(community, Number(number));
+            const { name, updated, settings, players } = await fetchUniverse(community, Number(number));
             const file = `${community.toLowerCase()}-${number}.js`;
             writeFileSync(join(dir, file), `(window.EXODUS_U = window.EXODUS_U || {})[${JSON.stringify(key)}] = ${JSON.stringify(players)};\n`);
-            found[key] = { name, updated, players:players.length, file };
+            found[key] = { name, updated, players:players.length, file, settings };
             total += players.length;
             console.log(`${server} ... ${name}: ${players.length} players`);
         }
@@ -181,7 +192,39 @@ missing.sort();
 
 if(!Object.keys(universes).length) throw new Error('No universe could be downloaded');
 
-const data = { generatedAt:Date.now(), communities, destinations, universes, missing };
+// The settings of the destinations. One that already exists has them in its own serverData.xml, downloaded
+// above. A new one is not in the public API until it opens, but Gameforge lists a server in the lobby server
+// list (one request) a little before that, with most of them: what the list lacks (deuterium usage, the
+// smaller options) stays empty, and the page fills it from what was typed in by hand. The list also gives
+// the style (miner, balanced, fleeter), which serverData.xml lacks.
+const specs = {};
+let lobby = [];
+try { lobby = JSON.parse(await get('https://lobby.ogame.gameforge.com/api/servers')); }
+catch(error)
+{
+    console.log(`Lobby server list: FAILED (${error.message})`);
+    if(process.env.GITHUB_ACTIONS) console.log(`::warning::lobby server list left out: ${error.message}`);
+}
+for(const key of Object.keys(destinations))
+{
+    const [community, number] = key.split(' ');
+    const listed = lobby.find(s => s.language === community.toLowerCase() && s.number === Number(number))?.settings;
+    const own = found[key]?.settings;
+    if(!listed && !own) continue;
+    specs[key] = own ? { ...own } :
+    {
+        economy:listed.economySpeed, research:listed.researchDurationDivisor,
+        peaceful:listed.fleetSpeedPeaceful, holding:listed.fleetSpeedHolding, hostile:listed.fleetSpeedWar,
+        galaxies:listed.universeSize, debris:listed.debrisFieldFactorShips, defenceDebris:listed.debrisFieldFactorDefence,
+        fields:listed.planetFields, deut:null, dm:listed.premiumValidationGift, acs:listed.aks,
+        donut:null, probeCargo:null, deutInDebris:null, ignoreSystems:null,
+    };
+    specs[key].style = listed?.serverCategory || null;
+}
+for(const universe of Object.values(universes)) delete universe.settings;
+console.log(`Settings for ${Object.keys(specs).length} of ${Object.keys(destinations).length} destinations`);
+
+const data = { generatedAt:Date.now(), communities, destinations, universes, specs, missing };
 writeFileSync(join(dir, 'index.js'), '// Generated by fetch.mjs - do not edit.\nwindow.EXODUS_INDEX = ' + JSON.stringify(data) + ';\n');
 
 console.log(`\n${Object.keys(universes).length} universes, ${total} players, ${missing.length} missing -> ${dir}`);

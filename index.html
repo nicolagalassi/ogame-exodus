@@ -323,7 +323,8 @@ addEventListener('DOMContentLoaded', () =>
             spec:{ show:'Mostra caratteristiche', showShort:'Mostra', close:'Chiudi', peaceful:'pacifica', hostile:'ostile', holding:'staz.', fields:'campi', dm:'MO' },
             specFields:{ economy:'Economia', research:'Ricerca', peaceful:'Flotta pacifica', holding:'Stazionamento', hostile:'Flotta ostile', galaxies:'Galassie',
                 debris:'Detriti', defenceDebris:'Difese nei detriti', fields:'Campi extra', deut:'Consumo deuterio', dm:'Materia Oscura' },
-            specCommon:'ACS ON · galassie e sistemi circolari · sonde con stiva ON · deuterio nei detriti ON · ignora sistemi vuoti e inattivi per tempi e consumi del volo ON.',
+            common:{ acs:'ACS', donut:'galassie e sistemi circolari', probeCargo:'sonde con stiva', deutInDebris:'deuterio nei detriti', ignoreSystems:'ignora sistemi vuoti e inattivi per tempi e consumi del volo' },
+            on:'ON', off:'OFF', styles:{ miner:'Miner', balanced:'Balanced', fleeter:'Fleeter', balancedSeason:'Balanced Season' },
             unavailable:'Dati non disponibili', loading:'Caricamento della classifica…', noMatch:'Nessun giocatore corrisponde ai filtri.',
             results:(n, all) => `${n} risultati su ${all} giocatori`, summary:(all, category, label) => `${all} giocatori nella classifica ${category.toLowerCase()} ${label}`,
             head:{ player:'Giocatore', alliance:'Alleanza', universe:'Universo', pos:'Pos. orig.', posTitle:'Posizione originale', points:'Punti', ships:'Navi' },
@@ -351,7 +352,8 @@ addEventListener('DOMContentLoaded', () =>
             spec:{ show:'Show settings', showShort:'Show', close:'Close', peaceful:'peaceful', hostile:'hostile', holding:'holding', fields:'fields', dm:'DM' },
             specFields:{ economy:'Economy', research:'Research', peaceful:'Peaceful fleet', holding:'Holding', hostile:'Hostile fleet', galaxies:'Galaxies',
                 debris:'Debris', defenceDebris:'Defence to debris', fields:'Extra fields', deut:'Deuterium usage', dm:'Dark Matter' },
-            specCommon:'ACS ON · circular galaxies and systems · probes with cargo ON · deuterium in debris ON · ignore empty and inactive systems for flight times and usage ON.',
+            common:{ acs:'ACS', donut:'circular galaxies and systems', probeCargo:'probes with cargo', deutInDebris:'deuterium in debris', ignoreSystems:'ignore empty and inactive systems for flight times and usage' },
+            on:'ON', off:'OFF', styles:{ miner:'Miner', balanced:'Balanced', fleeter:'Fleeter', balancedSeason:'Balanced Season' },
             unavailable:'Data not available', loading:'Loading the ranking…', noMatch:'No player matches the filters.',
             results:(n, all) => `${n} results out of ${all} players`, summary:(all, category, label) => `${all} players in the ${category.toLowerCase()} ranking ${label}`,
             head:{ player:'Player', alliance:'Alliance', universe:'Universe', pos:'Orig. pos.', posTitle:'Original position', points:'Points', ships:'Ships' },
@@ -464,32 +466,57 @@ addEventListener('DOMContentLoaded', () =>
                 }),
         };
     };
-    // The new destination universes do not exist yet, so the API has nothing on them: these are the announced
-    // settings, typed in by hand, for the ones that were announced. Keys match the destinations in data.destinations.
+    // The settings of a destination: from the API (data.specs, see fetch.mjs: an existing universe's own
+    // serverData.xml, or the lobby server list once a new one shows up there), and where the API has nothing yet,
+    // the announced ones typed in by hand. Keys match the destinations in data.destinations.
     const SPEC_FIELDS = [ 'economy', 'research', 'peaceful', 'holding', 'hostile', 'galaxies', 'debris', 'defenceDebris', 'fields', 'deut', 'dm' ];
-    const SPECS =
+    const SPEC_COMMON = [ 'acs', 'donut', 'probeCargo', 'deutInDebris', 'ignoreSystems' ];
+    const ALL_ON = { acs:1, donut:1, probeCargo:1, deutInDebris:1, ignoreSystems:1 };
+    const ANNOUNCED =
     {
-        'IT 281': { style:'Miner',    economy:'x10', research:'x20', peaceful:'x2', holding:'x2', hostile:'x1', galaxies:'8', debris:'50%', defenceDebris:'0%', fields:'+30', deut:0.5, dm:8000 },
-        'IT 282': { style:'Balanced', economy:'x10', research:'x20', peaceful:'x5', holding:'x3', hostile:'x2', galaxies:'8', debris:'50%', defenceDebris:'0%', fields:'+25', deut:0.5, dm:8000 },
-        'IT 283': { style:'Fleeter',  economy:'x10', research:'x20', peaceful:'x6', holding:'x4', hostile:'x3', galaxies:'8', debris:'50%', defenceDebris:'0%', fields:'+25', deut:0.5, dm:25000 },
-        'IT 284': { style:'Balanced', economy:'x10', research:'x20', peaceful:'x4', holding:'x2', hostile:'x2', galaxies:'8', debris:'50%', defenceDebris:'0%', fields:'+30', deut:0.5, dm:25000 },
+        'IT 281': { style:'miner',    economy:10, research:20, peaceful:2, holding:2, hostile:1, galaxies:8, debris:50, defenceDebris:0, fields:30, deut:0.5, dm:8000, ...ALL_ON },
+        'IT 282': { style:'balanced', economy:10, research:20, peaceful:5, holding:3, hostile:2, galaxies:8, debris:50, defenceDebris:0, fields:25, deut:0.5, dm:8000, ...ALL_ON },
+        'IT 283': { style:'fleeter',  economy:10, research:20, peaceful:6, holding:4, hostile:3, galaxies:8, debris:50, defenceDebris:0, fields:25, deut:0.5, dm:25000, ...ALL_ON },
+        'IT 284': { style:'balanced', economy:10, research:20, peaceful:4, holding:2, hostile:2, galaxies:8, debris:50, defenceDebris:0, fields:30, deut:0.5, dm:25000, ...ALL_ON },
     };
-    const specValue = (spec, key) => key === 'deut' ? fmt.format(spec.deut) + 'x' : key === 'dm' ? fmt.format(spec.dm) : spec[key];
+    const known = value => value !== null && value !== undefined;
+    const specOf = key =>
+    {
+        const api = data.specs?.[key], hand = ANNOUNCED[key];
+        if(!api && !hand) return null;
+        const spec = { ...hand };
+        for(const [field, value] of Object.entries(api || {})) if(known(value)) spec[field] = value;
+        return spec;
+    };
+    const specValue = (spec, key) =>
+    {
+        const value = spec[key];
+        if(!known(value)) return '–';
+        if([ 'economy', 'research', 'peaceful', 'holding', 'hostile' ].includes(key)) return 'x' + fmt.format(value);
+        if(key === 'debris' || key === 'defenceDebris') return fmt.format(value) + '%';
+        if(key === 'fields') return '+' + fmt.format(value);
+        if(key === 'deut') return fmt.format(value) + 'x';
+        // 8.000 rather than 8000, as the game writes it
+        if(key === 'dm') return new Intl.NumberFormat(t.locale, { useGrouping:'always' }).format(value);
+        return fmt.format(value);
+    };
 
     // the destinations relevant to what is selected: the one chosen, or the ones a group can move to
     const renderSpecs = () =>
     {
         const names = state.view === 'destination' ? [state.set] : data.communities[state.community].find(g => g.id === state.set).destinations;
-        $('specs').innerHTML = names.filter(n => SPECS[n]).map(n =>
+        $('specs').innerHTML = names.filter(specOf).map(n =>
         {
-            const spec = SPECS[n];
+            const spec = specOf(n);
+            const style = spec.style ? t.styles[spec.style] || spec.style : '';
+            const common = SPEC_COMMON.filter(key => known(spec[key])).map(key => `${t.common[key]} ${spec[key] ? t.on : t.off}`).join(' · ');
             // closed by default everywhere, so the ranking stays near the top. The summary says what is
             // inside and carries what sets the destinations apart (fleet speeds, holding, fields, dark matter).
-            return `<details class="spec"><summary><span class="specHead"><span class="specTitle"><b>${esc(destinationName(n))}</b> <span>${esc(spec.style)}</span></span>` +
-                `<em>${t.spec.peaceful} ${esc(spec.peaceful)} · ${t.spec.hostile} ${esc(spec.hostile)} · ${t.spec.holding} ${esc(spec.holding)} · ${t.spec.fields} ${esc(spec.fields)} · ${t.spec.dm} ${esc(specValue(spec, 'dm'))}</em></span>` +
+            return `<details class="spec"><summary><span class="specHead"><span class="specTitle"><b>${esc(destinationName(n))}</b> <span>${esc(style)}</span></span>` +
+                `<em>${t.spec.peaceful} ${specValue(spec, 'peaceful')} · ${t.spec.hostile} ${specValue(spec, 'hostile')} · ${t.spec.holding} ${specValue(spec, 'holding')} · ${t.spec.fields} ${specValue(spec, 'fields')} · ${t.spec.dm} ${specValue(spec, 'dm')}</em></span>` +
                 `<i class="specToggle" data-show="${esc(t.spec.show)}" data-short="${esc(t.spec.showShort)}" data-close="${esc(t.spec.close)}"></i></summary><dl>` +
                 SPEC_FIELDS.map(key => `<div><dt>${t.specFields[key]}</dt><dd>${esc(specValue(spec, key))}</dd></div>`).join('') +
-                `</dl><p class="specCommon">${esc(t.specCommon)}</p></details>`;
+                `</dl>${common ? `<p class="specCommon">${esc(common)}.</p>` : ''}</details>`;
         }).join('');
     };
 
