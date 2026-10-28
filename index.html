@@ -33,6 +33,10 @@
     ::selection{ background:var(--accent); color:var(--bg); }
     main, body > footer{ max-width:1120px; margin:0 auto; padding:34px 24px 64px; }
 
+    /* the language switch sits in the top corner of the masthead, clear of the kicker */
+    .mast .lang{ position:absolute; top:-8px; right:0; width:auto; gap:14px; }
+    .mast .lang button{ font:600 12px/1 var(--mono); letter-spacing:.08em; }
+    .kicker{ padding-right:90px; }
     .mast{ position:relative; padding-bottom:18px; margin-bottom:22px; border-bottom:2px solid var(--accent); transition:border-color .3s ease-out; }
     .kicker{ margin:0 0 10px; font:500 12px/1 var(--mono); letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
     h1{ margin:0; font:900 clamp(60px, 10vw, 96px)/.82 var(--display); letter-spacing:-.005em; text-transform:uppercase; text-wrap:balance; }
@@ -88,8 +92,8 @@
     .spec[open] summary em{ display:none; }
     .spec[open] summary{ margin-bottom:12px; }
     .specToggle{ flex:0 0 auto; font:600 13px/1 var(--text); font-style:normal; color:var(--muted); white-space:nowrap; }
-    .specToggle::after{ content:'Mostra caratteristiche'; }
-    .spec[open] .specToggle::after{ content:'Chiudi'; }
+    .specToggle::after{ content:attr(data-show); }
+    .spec[open] .specToggle::after{ content:attr(data-close); }
     @media (hover:hover){ .spec summary:hover .specToggle, .spec summary:hover::before{ color:var(--ink); } }
     @media (prefers-reduced-motion:reduce){ *, *::before, *::after{ transition:none !important; animation:none !important; } }
     @media (pointer:coarse){ .spec summary{ min-height:44px; } }
@@ -216,7 +220,7 @@
         td.points{ font-size:12px; text-overflow:clip; }
         .ships{ display:block; margin-top:3px; font-size:11.5px; color:var(--faint); }
         .spec summary em{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-        .specToggle::after{ content:'Mostra'; }
+        .specToggle::after{ content:attr(data-short); }
         .more{ min-height:48px; }
     }
     @media (min-width:641px){ .ships{ display:none; } }
@@ -253,35 +257,36 @@
 <body>
 <main>
     <header class="mast">
-        <p class="kicker" id="kicker">OGame · Fusioni 2026</p>
-        <h1>Exodus <span>unione classifiche</span></h1>
+        <p class="kicker" id="kicker">OGame · 2026</p>
+        <h1>Exodus <span id="subtitle"></span></h1>
+        <div class="tabs lang" id="lang" role="group" aria-label="Lingua / Language"><button data-lang="it">IT</button><button data-lang="en">EN</button></div>
     </header>
 
     <div class="bar">
         <div class="tabs" id="comms" role="group" aria-label="Community"></div>
     </div>
     <div class="bar">
-        <div class="tabs" id="views" role="group" aria-label="Unisci per">
-            <button data-view="group">Per gruppo</button>
-            <button data-view="destination">Per destinazione</button>
+        <div class="tabs" id="views" role="group">
+            <button data-view="group"></button>
+            <button data-view="destination"></button>
         </div>
         <span class="hint" id="hint"></span>
     </div>
 
-    <div class="groups" id="groups" role="group" aria-label="Classifica unita"></div>
+    <div class="groups" id="groups" role="group"></div>
     <div class="specs" id="specs"></div>
 
     <div class="bar controls">
-        <div class="tabs" id="tabs" role="group" aria-label="Classifica"></div>
+        <div class="tabs" id="tabs" role="group"></div>
     </div>
     <div class="bar">
-        <input type="search" id="search" placeholder="Cerca giocatore o alleanza" aria-label="Cerca giocatore o alleanza">
-        <label class="check"><input type="checkbox" id="active"> Nascondi inattivi e bannati</label>
-        <label class="check"><input type="checkbox" id="vacation"> Nascondi in vacanza</label>
+        <input type="search" id="search">
+        <label class="check"><input type="checkbox" id="active"> <span id="activeText"></span></label>
+        <label class="check"><input type="checkbox" id="vacation"> <span id="vacationText"></span></label>
     </div>
 
-    <div class="chips" id="chips" role="group" aria-label="Universi"></div>
-    <h2 class="sr">Classifica</h2>
+    <div class="chips" id="chips" role="group"></div>
+    <h2 class="sr" id="rankingHead"></h2>
     <p class="summary" id="summary" aria-live="polite"></p>
     <div id="table"></div>
 </main>
@@ -292,12 +297,99 @@ addEventListener('DOMContentLoaded', () =>
 {
     'use strict';
 
-    const data = window.EXODUS_INDEX;
     const $ = id => document.getElementById(id);
 
+    // Every word on the page, in Italian and English. The language comes from the address (?lang=en), then the
+    // last one chosen, then the browser: Italian for Italian browsers, English for everyone else.
+    const TEXT =
+    {
+        it:
+        {
+            locale:'it-IT', kicker:'Fusioni 2026', subtitle:'unione classifiche', noData:'Nessun dato. Esegui <code>node fetch.mjs</code> e ricarica la pagina.',
+            views:'Unisci per', byGroup:'Per gruppo', byDestination:'Per destinazione', merged:'Classifica unita', ranking:'Classifica', universesLabel:'Universi',
+            search:'Cerca giocatore o alleanza', hideInactive:'Nascondi inattivi e bannati', hideVacation:'Nascondi in vacanza',
+            categories:{ total:'Generale', economy:'Economia', research:'Ricerca', military:'Militare', lifeform:'Forme di vita' },
+            flags:{ v:'in vacanza', i:'inattivo da 7 giorni', I:'inattivo da 28 giorni', b:'bannato', o:'fuorilegge' },
+            colors:{ blue:'Blu', orange:'Arancio', green:'Verde', purple:'Viola', pink:'Rosa' },
+            uk:'Regno Unito (EN)', universe:n => `Universo ${n}`,
+            groupLabel:name => `del gruppo ${name}`, destinationLabel:name => `di ${name}`, groupOf:(name, community) => `gruppo ${name}${community ? ' ' + community : ''}`,
+            destinations:'Destinazioni', from:'Da', existing:'esistente', new:'nuovo', destinationChip:'destinazione',
+            count:(u, p) => `${u} ${u === 1 ? 'universo' : 'universi'}, ${p} giocatori`,
+            hints:
+            {
+                group:'Gli universi del gruppo e le destinazioni che esistono già: ogni giocatore compare una volta.',
+                destination:'Tutti i giocatori che possono scegliere quella destinazione, più quelli dell\'universo stesso se esiste già: chi ha più destinazioni compare in ognuna.',
+            },
+            spec:{ show:'Mostra caratteristiche', showShort:'Mostra', close:'Chiudi', peaceful:'pacifica', hostile:'ostile', holding:'staz.', fields:'campi', dm:'MO' },
+            specFields:{ economy:'Economia', research:'Ricerca', peaceful:'Flotta pacifica', holding:'Stazionamento', hostile:'Flotta ostile', galaxies:'Galassie',
+                debris:'Detriti', defenceDebris:'Difese nei detriti', fields:'Campi extra', deut:'Consumo deuterio', dm:'Materia Oscura' },
+            specCommon:'ACS ON · galassie e sistemi circolari · sonde con stiva ON · deuterio nei detriti ON · ignora sistemi vuoti e inattivi per tempi e consumi del volo ON.',
+            unavailable:'Dati non disponibili', loading:'Caricamento della classifica…', noMatch:'Nessun giocatore corrisponde ai filtri.',
+            results:(n, all) => `${n} risultati su ${all} giocatori`, summary:(all, category, label) => `${all} giocatori nella classifica ${category.toLowerCase()} ${label}`,
+            head:{ player:'Giocatore', alliance:'Alleanza', universe:'Universo', pos:'Pos. orig.', posTitle:'Posizione originale', points:'Punti', ships:'Navi' },
+            ships:n => `${n} navi`, more:(n, left) => `Mostra altri ${n} (${left} rimasti)`,
+            updated:(a, b) => `Classifiche aggiornate da Gameforge tra ${a} e ${b}. `, gone:list => `Non disponibili, quindi esclusi: ${list}. `,
+            fetched:when => `Dati scaricati il ${when}. `, admins:'Gli amministratori del gioco sono esclusi.',
+        },
+        en:
+        {
+            locale:'en-GB', kicker:'Merges 2026', subtitle:'merged rankings', noData:'No data. Run <code>node fetch.mjs</code> and reload the page.',
+            views:'Merge by', byGroup:'By group', byDestination:'By destination', merged:'Merged ranking', ranking:'Ranking', universesLabel:'Universes',
+            search:'Search player or alliance', hideInactive:'Hide inactive and banned', hideVacation:'Hide on vacation',
+            categories:{ total:'Points', economy:'Economy', research:'Research', military:'Military', lifeform:'Lifeforms' },
+            flags:{ v:'on vacation', i:'inactive for 7 days', I:'inactive for 28 days', b:'banned', o:'outlaw' },
+            colors:{ blue:'Blue', orange:'Orange', green:'Green', purple:'Purple', pink:'Pink' },
+            uk:'United Kingdom (EN)', universe:n => `Universe ${n}`,
+            groupLabel:name => `of the ${name} group`, destinationLabel:name => `of ${name}`, groupOf:(name, community) => `${community ? community + ' ' : ''}${name} group`,
+            destinations:'Destinations', from:'From', existing:'existing', new:'new', destinationChip:'destination',
+            count:(u, p) => `${u} ${u === 1 ? 'universe' : 'universes'}, ${p} players`,
+            hints:
+            {
+                group:'The universes of the group and the destinations that already exist: every player shows up once.',
+                destination:'Every player who can choose that destination, plus its own players if it already exists: a player with several destinations shows up under each.',
+            },
+            spec:{ show:'Show settings', showShort:'Show', close:'Close', peaceful:'peaceful', hostile:'hostile', holding:'holding', fields:'fields', dm:'DM' },
+            specFields:{ economy:'Economy', research:'Research', peaceful:'Peaceful fleet', holding:'Holding', hostile:'Hostile fleet', galaxies:'Galaxies',
+                debris:'Debris', defenceDebris:'Defence to debris', fields:'Extra fields', deut:'Deuterium usage', dm:'Dark Matter' },
+            specCommon:'ACS ON · circular galaxies and systems · probes with cargo ON · deuterium in debris ON · ignore empty and inactive systems for flight times and usage ON.',
+            unavailable:'Data not available', loading:'Loading the ranking…', noMatch:'No player matches the filters.',
+            results:(n, all) => `${n} results out of ${all} players`, summary:(all, category, label) => `${all} players in the ${category.toLowerCase()} ranking ${label}`,
+            head:{ player:'Player', alliance:'Alliance', universe:'Universe', pos:'Orig. pos.', posTitle:'Original position', points:'Points', ships:'Ships' },
+            ships:n => `${n} ships`, more:(n, left) => `Show ${n} more (${left} left)`,
+            updated:(a, b) => `Rankings updated by Gameforge between ${a} and ${b}. `, gone:list => `Not available, so left out: ${list}. `,
+            fetched:when => `Data downloaded on ${when}. `, admins:'Game administrators are left out.',
+        },
+    };
+    const store = { get:key => { try { return localStorage.getItem(key); } catch(e) { return null; } }, set:(key, value) => { try { localStorage.setItem(key, value); } catch(e) { /* not kept */ } } };
+    const askedLang = (new URLSearchParams(location.search).get('lang') || '').toLowerCase();
+    let lang = TEXT[askedLang] ? askedLang : TEXT[store.get('exodus-lang')] ? store.get('exodus-lang')
+        : (navigator.languages || [navigator.language || '']).some(l => /^it\b/i.test(l)) ? 'it' : 'en';
+    let t, fmt, regions;
+    const setLanguage = code =>
+    {
+        lang = code; t = TEXT[lang];
+        fmt = new Intl.NumberFormat(t.locale);
+        try { regions = new Intl.DisplayNames([lang], { type:'region' }); } catch(e) { regions = null; }
+        document.documentElement.lang = lang;
+        // the words written in the page itself
+        $('subtitle').textContent = t.subtitle;
+        $('views').setAttribute('aria-label', t.views);
+        $('views').querySelector('[data-view=group]').textContent = t.byGroup;
+        $('views').querySelector('[data-view=destination]').textContent = t.byDestination;
+        $('groups').setAttribute('aria-label', t.merged);
+        $('tabs').setAttribute('aria-label', t.ranking);
+        $('search').placeholder = t.search; $('search').setAttribute('aria-label', t.search);
+        $('activeText').textContent = t.hideInactive; $('vacationText').textContent = t.hideVacation;
+        $('chips').setAttribute('aria-label', t.universesLabel);
+        $('rankingHead').textContent = t.ranking;
+        $('lang').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.lang === lang));
+    };
+    setLanguage(lang);
+
+    const data = window.EXODUS_INDEX;
     if(!data)
     {
-        $('table').innerHTML = '<div class="empty">Nessun dato. Esegui <code>node fetch.mjs</code> e ricarica la pagina.</div>';
+        $('table').innerHTML = `<div class="empty">${t.noData}</div>`;
         return;
     }
 
@@ -322,71 +414,69 @@ addEventListener('DOMContentLoaded', () =>
     // [id, name, status, alliance, total, totalPos, economy, economyPos, research, researchPos, military, militaryPos, ships, lifeform, lifeformPos]
     const CATEGORIES =
     [
-        { key:'total', label:'Generale', score:4, pos:5, color:'#c9c42c', ink:'#1a1700' },
-        { key:'economy', label:'Economia', score:6, pos:7, color:'#8c939c', ink:'#101418' },
-        { key:'research', label:'Ricerca', score:8, pos:9, color:'#62b02f', ink:'#0d1a05' },
-        { key:'military', label:'Militare', score:10, pos:11, ships:12, color:'#d0383a', ink:'#fff' },
-        { key:'lifeform', label:'Forme di vita', score:13, pos:14, color:'#7457d0', ink:'#fff' },
+        { key:'total', score:4, pos:5, color:'#c9c42c', ink:'#1a1700' },
+        { key:'economy', score:6, pos:7, color:'#8c939c', ink:'#101418' },
+        { key:'research', score:8, pos:9, color:'#62b02f', ink:'#0d1a05' },
+        { key:'military', score:10, pos:11, ships:12, color:'#d0383a', ink:'#fff' },
+        { key:'lifeform', score:13, pos:14, color:'#7457d0', ink:'#fff' },
     ];
-    const FLAGS = { v:'in vacanza', i:'inattivo da 7 giorni', I:'inattivo da 28 giorni', b:'bannato', o:'fuorilegge' };
     const PAGE = 250;
 
-    const fmt = new Intl.NumberFormat('it-IT');
     const esc = text => String(text).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
 
     // Universes are keyed 'IT 264'. Inside a community the number is enough; one of another community keeps
-    // its code.
+    // its code. A universe without a name in the API (the old Universe 1) is called by its number.
     const communities = Object.keys(data.communities).sort();
-    let regions = null;
-    try { regions = new Intl.DisplayNames(['it'], { type:'region' }); } catch(e) { /* codes only */ }
-    const country = c => c === 'EN' ? 'Regno Unito (EN)' : regions?.of(c) || c;
+    const country = c => c === 'EN' ? t.uk : regions?.of(c) || c;
     const number = key => Number(key.split(' ')[1]);
     const short = key => key.startsWith(state.community + ' ') ? String(number(key)) : key;
-    const destinationName = key => `${data.destinations[key].name} (${key})`;
+    const universeName = key => data.universes[key]?.name || data.destinations[key]?.name || t.universe(number(key));
+    const destinationName = key => `${data.destinations[key].name || t.universe(number(key))} (${key})`;
+    const existing = key => data.destinations[key]?.existing;
 
-    // The two ways of merging, for the chosen community. A group is a fixed set of source universes. A
-    // destination takes every group that can move there, from any community (Yi-SWAN ES also takes groups of
-    // AR and MX), plus its own players when it is a universe that already exists; a player shows up under
-    // each destination their group can choose.
+    // The two ways of merging, for the chosen community. A group is its source universes plus the destinations
+    // that already exist (Sombrero DE 171 goes into Volans EN 174, so the DE group shows both). A destination
+    // takes every group that can move there, from any community (Yi-SWAN ES also takes groups of AR and MX),
+    // plus its own players when it already exists; a player shows up under each destination their group can
+    // choose.
     const allGroups = Object.entries(data.communities).flatMap(([community, groups]) => groups.map(g => ({ ...g, community })));
     const setsFor = community =>
     {
         const groups = data.communities[community];
-        const groupName = g => `gruppo ${g.name}${g.community === community ? '' : ' ' + g.community}`;
+        const groupName = g => t.groupOf(t.colors[g.name], g.community === community ? '' : g.community);
         return {
-            group:groups.map(g => ({ id:g.id, name:g.name, label:`del gruppo ${g.name}`, colors:[g.color], universes:g.universes,
-                note:`Destinazioni: ${g.destinations.map(destinationName).join(', ')}${g.note ? ' · ' + g.note : ''}` })),
+            group:groups.map(g => ({ id:g.id, name:t.colors[g.name], label:t.groupLabel(t.colors[g.name]), colors:[g.color],
+                universes:[...new Set([...g.universes, ...g.destinations.filter(existing)])],
+                note:`${t.destinations}: ${g.destinations.map(destinationName).join(', ')}${g.note ? ' · ' + g.note : ''}` })),
             destination:[...new Set(groups.flatMap(g => g.destinations))]
                 .sort((a, b) => (a.startsWith(community + ' ') ? 0 : 1) - (b.startsWith(community + ' ') ? 0 : 1) || number(a) - number(b))
                 .map(d =>
                 {
-                    const destination = data.destinations[d];
+                    const name = universeName(d);
                     // the same universes can be listed under two communities (Sombrero DE 171 under DE and EN): once is enough
                     const from = allGroups.filter(g => g.destinations.includes(d))
                         .filter((g, i, all) => all.findIndex(o => o.universes.join() === g.universes.join()) === i)
                         .sort((a, b) => (a.community === community ? 0 : 1) - (b.community === community ? 0 : 1));
-                    const universes = [...new Set([...(destination.existing ? [d] : []), ...from.flatMap(g => g.universes)])];
-                    return { id:d, server:d + (destination.existing ? ' esistente' : ' nuovo'), name:destination.name, label:`di ${destination.name}`,
+                    const universes = [...new Set([...(existing(d) ? [d] : []), ...from.flatMap(g => g.universes)])];
+                    return { id:d, server:`${d} ${existing(d) ? t.existing : t.new}`, name, label:t.destinationLabel(name),
                         colors:[...new Set(from.map(g => g.color))], universes,
-                        note:`Da: ${destination.existing ? destination.name + ' + ' : ''}${from.map(groupName).join(' + ')}` };
+                        note:`${t.from}: ${existing(d) ? name + ' + ' : ''}${from.map(groupName).join(' + ')}` };
                 }),
         };
     };
     // The new destination universes do not exist yet, so the API has nothing on them: these are the announced
     // settings, typed in by hand, for the ones that were announced. Keys match the destinations in data.destinations.
-    const SPEC_FIELDS = [ ['economy', 'Economia'], ['research', 'Ricerca'], ['peaceful', 'Flotta pacifica'], ['holding', 'Stazionamento'],
-        ['hostile', 'Flotta ostile'], ['galaxies', 'Galassie'], ['debris', 'Detriti'], ['defenceDebris', 'Difese nei detriti'],
-        ['fields', 'Campi extra'], ['deut', 'Consumo deuterio'], ['dm', 'Materia Oscura'] ];
-    const SPEC_COMMON = 'ACS ON · galassie e sistemi circolari · sonde con stiva ON · deuterio nei detriti ON · ignora sistemi vuoti e inattivi per tempi e consumi del volo ON.';
+    const SPEC_FIELDS = [ 'economy', 'research', 'peaceful', 'holding', 'hostile', 'galaxies', 'debris', 'defenceDebris', 'fields', 'deut', 'dm' ];
     const SPECS =
     {
-        'IT 281':    { style:'Miner',    economy:'x10', research:'x20', peaceful:'x2', holding:'x2', hostile:'x1', galaxies:'8', debris:'50%', defenceDebris:'0%', fields:'+30', deut:'0,5x', dm:'8.000' },
-        'IT 282':   { style:'Balanced', economy:'x10', research:'x20', peaceful:'x5', holding:'x3', hostile:'x2', galaxies:'8', debris:'50%', defenceDebris:'0%', fields:'+25', deut:'0,5x', dm:'8.000' },
-        'IT 283':     { style:'Fleeter',  economy:'x10', research:'x20', peaceful:'x6', holding:'x4', hostile:'x3', galaxies:'8', debris:'50%', defenceDebris:'0%', fields:'+25', deut:'0,5x', dm:'25.000' },
-        'IT 284': { style:'Balanced', economy:'x10', research:'x20', peaceful:'x4', holding:'x2', hostile:'x2', galaxies:'8', debris:'50%', defenceDebris:'0%', fields:'+30', deut:'0,5x', dm:'25.000' },
+        'IT 281': { style:'Miner',    economy:'x10', research:'x20', peaceful:'x2', holding:'x2', hostile:'x1', galaxies:'8', debris:'50%', defenceDebris:'0%', fields:'+30', deut:0.5, dm:8000 },
+        'IT 282': { style:'Balanced', economy:'x10', research:'x20', peaceful:'x5', holding:'x3', hostile:'x2', galaxies:'8', debris:'50%', defenceDebris:'0%', fields:'+25', deut:0.5, dm:8000 },
+        'IT 283': { style:'Fleeter',  economy:'x10', research:'x20', peaceful:'x6', holding:'x4', hostile:'x3', galaxies:'8', debris:'50%', defenceDebris:'0%', fields:'+25', deut:0.5, dm:25000 },
+        'IT 284': { style:'Balanced', economy:'x10', research:'x20', peaceful:'x4', holding:'x2', hostile:'x2', galaxies:'8', debris:'50%', defenceDebris:'0%', fields:'+30', deut:0.5, dm:25000 },
     };
+    const specValue = (spec, key) => key === 'deut' ? fmt.format(spec.deut) + 'x' : key === 'dm' ? fmt.format(spec.dm) : spec[key];
 
-    // the destinations relevant to what is selected: the one chosen, or the two a group can move to
+    // the destinations relevant to what is selected: the one chosen, or the ones a group can move to
     const renderSpecs = () =>
     {
         const names = state.view === 'destination' ? [state.set] : data.communities[state.community].find(g => g.id === state.set).destinations;
@@ -396,16 +486,11 @@ addEventListener('DOMContentLoaded', () =>
             // closed by default everywhere, so the ranking stays near the top. The summary says what is
             // inside and carries what sets the destinations apart (fleet speeds, holding, fields, dark matter).
             return `<details class="spec"><summary><span class="specHead"><span class="specTitle"><b>${esc(destinationName(n))}</b> <span>${esc(spec.style)}</span></span>` +
-                `<em>pacifica ${esc(spec.peaceful)} · ostile ${esc(spec.hostile)} · staz. ${esc(spec.holding)} · campi ${esc(spec.fields)} · MO ${esc(spec.dm)}</em></span><i class="specToggle"></i></summary><dl>` +
-                SPEC_FIELDS.map(([key, label]) => `<div><dt>${label}</dt><dd>${esc(spec[key])}</dd></div>`).join('') +
-                `</dl><p class="specCommon">${esc(SPEC_COMMON)}</p></details>`;
+                `<em>${t.spec.peaceful} ${esc(spec.peaceful)} · ${t.spec.hostile} ${esc(spec.hostile)} · ${t.spec.holding} ${esc(spec.holding)} · ${t.spec.fields} ${esc(spec.fields)} · ${t.spec.dm} ${esc(specValue(spec, 'dm'))}</em></span>` +
+                `<i class="specToggle" data-show="${esc(t.spec.show)}" data-short="${esc(t.spec.showShort)}" data-close="${esc(t.spec.close)}"></i></summary><dl>` +
+                SPEC_FIELDS.map(key => `<div><dt>${t.specFields[key]}</dt><dd>${esc(specValue(spec, key))}</dd></div>`).join('') +
+                `</dl><p class="specCommon">${esc(t.specCommon)}</p></details>`;
         }).join('');
-    };
-
-    const HINTS =
-    {
-        group:'Ogni giocatore compare una volta.',
-        destination:'Tutti i giocatori che possono scegliere quella destinazione, più quelli dell\'universo stesso se esiste già: chi ha più destinazioni compare in ognuna.',
     };
 
     // the community comes from the address (?c=IT), so a link opens on the same one
@@ -417,17 +502,24 @@ addEventListener('DOMContentLoaded', () =>
 
     const group = () => SETS[state.view].find(s => s.id === state.set);
 
+    const setAddress = (key, value) =>
+    {
+        const url = new URL(location.href);
+        url.searchParams.set(key, value);
+        history.replaceState(null, '', url);
+    };
+
     const renderCommunities = () =>
     {
         $('comms').innerHTML = communities.map(c => `<button data-c="${c}" title="${esc(country(c))}" aria-label="${esc(country(c))}" aria-pressed="${c === state.community}">${c}</button>`).join('');
-        $('kicker').textContent = `OGame ${country(state.community)} · Fusioni 2026`;
+        $('kicker').textContent = `OGame ${country(state.community)} · ${t.kicker}`;
         $('comms').querySelector('[aria-pressed="true"]')?.scrollIntoView({ block:'nearest', inline:'nearest' });
     };
 
     const renderGroups = () =>
     {
         $('views').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.view === state.view));
-        $('hint').textContent = HINTS[state.view];
+        $('hint').textContent = t.hints[state.view];
         $('groups').innerHTML = SETS[state.view].map(s =>
         {
             const count = s.universes.reduce((sum, n) => sum + (data.universes[n]?.players || 0), 0);
@@ -435,7 +527,7 @@ addEventListener('DOMContentLoaded', () =>
             const bar = s.colors.length > 1 ? `linear-gradient(90deg,${s.colors.map((c, i) => `${c} ${i * 100 / s.colors.length}% ${(i + 1) * 100 / s.colors.length}%`).join(',')})` : s.colors[0];
             return `<button class="group" style="--c:${s.colors[0]};--bar:${bar}" data-id="${esc(s.id)}" aria-pressed="${s.id === state.set}">` +
                 `<b><span class="sw" aria-hidden="true">${s.colors.map(c => `<i style="--sw:${c}"></i>`).join('')}</span>${esc(s.name)}</b>` +
-                `<span>${s.server ? esc(s.server) + ' · ' : ''}${s.universes.length} ${s.universes.length === 1 ? 'universo' : 'universi'}, ${fmt.format(count)} giocatori</span>` +
+                `<span>${s.server ? esc(s.server) + ' · ' : ''}${t.count(s.universes.length, fmt.format(count))}</span>` +
                 `<span>${esc(s.note)}</span></button>`;
         }).join('');
         document.documentElement.style.setProperty('--group', group().colors[0]);
@@ -445,16 +537,17 @@ addEventListener('DOMContentLoaded', () =>
 
     const renderTabs = () =>
     {
-        $('tabs').innerHTML = CATEGORIES.map(c => `<button data-key="${c.key}" style="--cat:${c.color};--cat-ink:${c.ink}" aria-pressed="${c.key === state.category}">${c.label}</button>`).join('');
+        $('tabs').innerHTML = CATEGORIES.map(c => `<button data-key="${c.key}" style="--cat:${c.color};--cat-ink:${c.ink}" aria-pressed="${c.key === state.category}">${t.categories[c.key]}</button>`).join('');
     };
 
+    // in the group view an existing destination is marked as such
     const renderChips = () =>
     {
         $('chips').innerHTML = group().universes.map(n =>
         {
-            const u = data.universes[n];
-            if(!u || failed.has(n)) return `<button class="chip gone" disabled title="Dati non disponibili">${esc(u?.name || 'Universo')}<small>${esc(short(n))}</small></button>`;
-            return `<button class="chip" data-n="${esc(n)}" aria-pressed="${!state.hidden.has(n)}">${esc(u.name)}<small>${esc(short(n))}</small></button>`;
+            const label = esc(short(n)) + (state.view === 'group' && existing(n) ? ` · ${t.destinationChip}` : '');
+            if(!data.universes[n] || failed.has(n)) return `<button class="chip gone" disabled title="${t.unavailable}">${esc(universeName(n))}<small>${label}</small></button>`;
+            return `<button class="chip" data-n="${esc(n)}" aria-pressed="${!state.hidden.has(n)}">${esc(universeName(n))}<small>${label}</small></button>`;
         }).join('');
     };
 
@@ -467,7 +560,7 @@ addEventListener('DOMContentLoaded', () =>
         for(const n of group().universes)
         {
             if(state.hidden.has(n) || !players[n]) continue;
-            const universe = { name:data.universes[n].name, number:short(n) };
+            const universe = { name:universeName(n), number:short(n) };
 
             for(const p of players[n])
             {
@@ -491,7 +584,7 @@ addEventListener('DOMContentLoaded', () =>
         if(!group().universes.every(ready))
         {
             $('summary').textContent = '';
-            $('table').innerHTML = '<div class="empty">Caricamento della classifica…</div>';
+            $('table').innerHTML = `<div class="empty">${t.loading}</div>`;
             Promise.all(group().universes.map(load)).then(() => { renderChips(); renderTable(); renderFooter(); });
             return;
         }
@@ -500,20 +593,20 @@ addEventListener('DOMContentLoaded', () =>
         const shown = list.slice(0, state.shown);
 
         $('summary').textContent = state.query
-            ? `${fmt.format(list.length)} risultati su ${fmt.format(all)} giocatori`
-            : `${fmt.format(all)} giocatori nella classifica ${category.label.toLowerCase()} ${group().label}`;
+            ? t.results(fmt.format(list.length), fmt.format(all))
+            : t.summary(fmt.format(all), t.categories[category.key], group().label);
 
         if(!list.length)
         {
-            $('table').innerHTML = '<div class="empty">Nessun giocatore corrisponde ai filtri.</div>';
+            $('table').innerHTML = `<div class="empty">${t.noMatch}</div>`;
             return;
         }
 
-        const flags = status => Array.from(status).filter(f => FLAGS[f]).map(f => `<span class="flag ${f}" title="${FLAGS[f]}">${f}</span>`).join('');
+        const flags = status => Array.from(status).filter(f => t.flags[f]).map(f => `<span class="flag ${f}" title="${t.flags[f]}">${f}</span>`).join('');
 
         $('table').innerHTML =
-            `<table><thead><tr><th class="num c-rank">#</th><th>Giocatore</th><th class="wide c-ally">Alleanza</th><th class="wide c-uni">Universo</th><th class="num opt c-pos" title="Posizione originale">Pos. orig.</th>` +
-            `<th class="num c-pts">Punti</th>${category.ships ? '<th class="num opt c-ships">Navi</th>' : ''}</tr></thead><tbody>` +
+            `<table><thead><tr><th class="num c-rank">#</th><th>${t.head.player}</th><th class="wide c-ally">${t.head.alliance}</th><th class="wide c-uni">${t.head.universe}</th>` +
+            `<th class="num opt c-pos" title="${t.head.posTitle}">${t.head.pos}</th><th class="num c-pts">${t.head.points}</th>${category.ships ? `<th class="num opt c-ships">${t.head.ships}</th>` : ''}</tr></thead><tbody>` +
             shown.map(({ p, universe, rank }) =>
                 `<tr class="${rank <= 3 ? 'top podium' : rank <= 10 ? 'top' : ''}"><td class="num rank">${rank}</td>` +
                 `<td class="name">${esc(p[1])}${flags(p[2])}<span class="meta">${p[3] ? esc(p[3]) + ' · ' : ''}${esc(universe.name)} <em>${esc(universe.number)}` +
@@ -522,34 +615,40 @@ addEventListener('DOMContentLoaded', () =>
                 `<td class="uni wide">${esc(universe.name)}<em>${esc(universe.number)}</em></td>` +
                 `<td class="num opt">${p[category.pos] ? fmt.format(p[category.pos]) : ''}</td>` +
                 `<td class="num points">${fmt.format(p[category.score])}` +
-                (category.ships ? `<span class="ships">${fmt.format(p[category.ships])} navi</span>` : '') + `</td>` +
+                (category.ships ? `<span class="ships">${t.ships(fmt.format(p[category.ships]))}</span>` : '') + `</td>` +
                 (category.ships ? `<td class="num opt">${fmt.format(p[category.ships])}</td>` : '') + `</tr>`).join('') +
             `</tbody></table>` +
-            (list.length > shown.length ? `<button class="more" id="more">Mostra altri ${fmt.format(Math.min(PAGE, list.length - shown.length))} (${fmt.format(list.length - shown.length)} rimasti)</button>` : '');
+            (list.length > shown.length ? `<button class="more" id="more">${t.more(fmt.format(Math.min(PAGE, list.length - shown.length)), fmt.format(list.length - shown.length))}</button>` : '');
     };
 
     const renderFooter = () =>
     {
         const stamps = group().universes.map(n => data.universes[n]?.updated).filter(Boolean);
-        const when = t => new Date(t * 1000).toLocaleString('it-IT', { dateStyle:'short', timeStyle:'short' });
+        const when = time => new Date(time).toLocaleString(t.locale, { dateStyle:'short', timeStyle:'short' });
         const gone = group().universes.filter(n => !data.universes[n] || failed.has(n));
-        $('footer').textContent = (stamps.length ? `Classifiche aggiornate da Gameforge tra ${when(Math.min(...stamps))} e ${when(Math.max(...stamps))}. ` : '') +
-            (gone.length ? `Non disponibili, quindi esclusi: ${gone.join(', ')}. ` : '') +
-            `Dati scaricati il ${new Date(data.generatedAt).toLocaleString('it-IT', { dateStyle:'short', timeStyle:'short' })}. ` +
-            `Gli amministratori del gioco sono esclusi.`;
+        $('footer').textContent = (stamps.length ? t.updated(when(Math.min(...stamps) * 1000), when(Math.max(...stamps) * 1000)) : '') +
+            (gone.length ? t.gone(gone.join(', ')) : '') + t.fetched(when(data.generatedAt)) + t.admins;
     };
 
     const render = () => { renderCommunities(); renderGroups(); renderSpecs(); renderTabs(); renderChips(); renderTable(); renderFooter(); };
 
+    $('lang').addEventListener('click', e =>
+    {
+        const button = e.target.closest('button');
+        if(!button || button.dataset.lang === lang) return;
+        setLanguage(button.dataset.lang);
+        store.set('exodus-lang', lang);
+        setAddress('lang', lang);
+        SETS = setsFor(state.community);
+        render();
+    });
     $('comms').addEventListener('click', e =>
     {
         const button = e.target.closest('button');
         if(!button || button.dataset.c === state.community) return;
         state.community = button.dataset.c; SETS = setsFor(state.community);
         state.set = SETS[state.view][0].id; state.hidden.clear(); state.shown = PAGE;
-        const url = new URL(location.href);
-        url.searchParams.set('c', state.community);
-        history.replaceState(null, '', url);
+        setAddress('c', state.community);
         render();
     });
     $('views').addEventListener('click', e =>

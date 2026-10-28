@@ -7,6 +7,7 @@
 //   to    the destinations, as 'Name (COMMUNITY number)'. A leading '+' marks a universe that already exists
 //         and keeps running (a hard merge): its own players are part of the merged ranking. Without '+'
 //         the destination is a new universe, which the API knows nothing about yet.
+//         The old Universe 1 has no name: '+(EN 1)'.
 //   note  optional, shown with the group
 // A destination can take groups of several communities (Yi-SWAN, Zhang and Astrid ES take AR and MX too).
 // fetch.mjs downloads every universe named here; index.html reads the map from data/index.js.
@@ -35,13 +36,13 @@ export const MERGES =
     ],
     DK:
     [
-        { from:[154, 155, 156, 157, 158], to:['+Universo 1 (DK 1)', '+Polaris (DK 142)', 'Janice (DK 162)'] },
+        { from:[154, 155, 156, 157, 158], to:['+(DK 1)', '+Polaris (DK 142)', 'Janice (DK 162)'] },
     ],
     EN:
     [
         { from:['DE 171'], to:['+Volans (EN 174)'], note:'Chaos merge DE + EN' },
-        { from:[122, 190, 198, 261], to:['+Universo 1 (EN 1)', 'Yi–SWAN (EN 280)', 'Zhang (EN 281)', 'Astrid (EN 282)'] },
-        { from:[262, 263, 264, 265, 266, 267, 268, 269, 270, 271], to:['+Universo 1 (EN 1)', 'Yi–SWAN (EN 280)', 'Zhang (EN 281)', 'Astrid (EN 282)', 'Buzz (EN 283)'] },
+        { from:[122, 190, 198, 261], to:['+(EN 1)', 'Yi–SWAN (EN 280)', 'Zhang (EN 281)', 'Astrid (EN 282)'] },
+        { from:[262, 263, 264, 265, 266, 267, 268, 269, 270, 271], to:['+(EN 1)', 'Yi–SWAN (EN 280)', 'Zhang (EN 281)', 'Astrid (EN 282)', 'Buzz (EN 283)'] },
     ],
     ES:
     [
@@ -104,7 +105,7 @@ export const MERGES =
     ],
     RU:
     [
-        { from:[103, 178, 182, 188, 193, 199, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264], to:['+Universo 1 (RU 1)', 'Quasi-Stellar (RU 272)', 'Regulus (RU 273)', 'Scorpius (RU 274)'] },
+        { from:[103, 178, 182, 188, 193, 199, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264], to:['+(RU 1)', 'Quasi-Stellar (RU 272)', 'Regulus (RU 273)', 'Scorpius (RU 274)'] },
     ],
     SI:
     [
