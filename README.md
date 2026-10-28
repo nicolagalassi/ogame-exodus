@@ -25,9 +25,14 @@ Le fusioni sono scritte in `merges.mjs`, ricopiate da https://ogame.comastuff.co
 | Arancio | 195, 254 | Zhang (IT 281), Astrid (IT 282) |
 | Verde | 266, 268, 271, 272, 273, 275, 276 | Astrid (IT 282), Buzz (IT 283) |
 
-Per le destinazioni italiane la pagina mostra anche le caratteristiche annunciate (velocità, detriti, campi
-extra, materia oscura...), scritte a mano in `SPECS`, in `index.html`: i nuovi universi non esistono ancora
-nell'API. Per le altre community le caratteristiche non ci sono.
+Per ogni destinazione la pagina mostra anche le caratteristiche (stile, velocità, detriti, campi extra,
+consumo di deuterio, materia oscura...):
+
+- per un universo che esiste già, dal suo `serverData.xml` nell'API;
+- per un universo nuovo, dall'elenco dei server della lobby (`lobby.ogame.gameforge.com/api/servers`), appena
+  Gameforge ce lo aggiunge. L'elenco non ha il consumo di deuterio e le opzioni minori;
+- dove l'API non ha ancora niente, quelle annunciate, scritte a mano in `ANNOUNCED`, in `index.html` (per ora
+  solo le destinazioni italiane). I valori dell'API, quando ci sono, hanno la precedenza.
 
 ## Dati
 
