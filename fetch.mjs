@@ -108,7 +108,26 @@ const fetchUniverse = async (community, number) =>
     const compact = Array.from(rows.values(), r => [r.id, r.name, r.status, r.alliance,
         ...(r.total || [0, 0]), ...(r.economy || [0, 0]), ...(r.research || [0, 0]), ...(r.military || [0, 0]), r.ships || 0, ...(r.lifeform || [0, 0])]);
 
-    return { name, updated, players:compact };
+    return { name, updated, players:compact, settings:settings(server) };
+};
+
+// The settings of a universe from its serverData.xml, in the shape of SPECS in index.html, for the
+// destinations that already exist. Research speed is the economy speed times researchDurationDivisor; an empty
+// switch is off; probeCargo is a capacity, so anything above 0 is on.
+const settings = server =>
+{
+    const value = tag => (server.match(new RegExp(`<${tag}>([^<]*)</${tag}>`)) || [])[1] ?? '';
+    const number = tag => Number(value(tag)) || 0;
+    const on = tag => number(tag) > 0;
+    const percent = tag => `${Math.round(number(tag) * 100)}%`;
+    return {
+        economy:`x${number('speed')}`, research:`x${number('speed') * (number('researchDurationDivisor') || 1)}`,
+        peaceful:`x${number('speedFleetPeaceful')}`, holding:`x${number('speedFleetHolding')}`, hostile:`x${number('speedFleetWar')}`,
+        galaxies:String(number('galaxies')), debris:percent('debrisFactor'), defenceDebris:percent('debrisFactorDef'),
+        fields:`+${number('bonusFields')}`, deut:number('globalDeuteriumSaveFactor'), dm:number('darkMatterNewAcount'),
+        acs:on('acs'), circular:on('donutGalaxy') && on('donutSystem'), probeCargo:on('probeCargo'), deutDebris:on('deuteriumInDebris'),
+        ignoreEmpty:on('fleetIgnoreEmptySystems'), ignoreInactive:on('fleetIgnoreInactiveSystems'),
+    };
 };
 
 // The merge map as index.html uses it. Universes are keyed 'IT 264' (the same number exists in several
@@ -158,10 +177,10 @@ const worker = async () =>
         const server = `s${number}-${community.toLowerCase()}`;
         try
         {
-            const { name, updated, players } = await fetchUniverse(community, Number(number));
+            const { name, updated, players, settings } = await fetchUniverse(community, Number(number));
             const file = `${community.toLowerCase()}-${number}.js`;
             writeFileSync(join(dir, file), `(window.EXODUS_U = window.EXODUS_U || {})[${JSON.stringify(key)}] = ${JSON.stringify(players)};\n`);
-            found[key] = { name, updated, players:players.length, file };
+            found[key] = { name, updated, players:players.length, file, ...(destinations[key]?.existing ? { settings } : {}) };
             total += players.length;
             console.log(`${server} ... ${name}: ${players.length} players`);
         }

@@ -321,7 +321,8 @@ addEventListener('DOMContentLoaded', () =>
                 group:'Gli universi del gruppo e le destinazioni che esistono già: ogni giocatore compare una volta.',
                 destination:'Tutti i giocatori che possono scegliere quella destinazione, più quelli dell\'universo stesso se esiste già: chi ha più destinazioni compare in ognuna.',
             },
-            spec:{ show:'Mostra caratteristiche', showShort:'Mostra', close:'Chiudi', peaceful:'pacifica', hostile:'ostile', holding:'staz.', fields:'campi', dm:'MO' },
+            spec:{ show:'Mostra caratteristiche', showShort:'Mostra', close:'Chiudi', peaceful:'pacifica', hostile:'ostile', holding:'staz.', fields:'campi', dm:'MO',
+                fromApi:'universo esistente: impostazioni attuali, dall\'API del server', changed:list => `universo esistente: impostazioni attuali dall'API, con le modifiche annunciate per la fusione (${list})` },
             specFields:{ economy:'Economia', research:'Ricerca', peaceful:'Flotta pacifica', holding:'Stazionamento', hostile:'Flotta ostile', galaxies:'Galassie',
                 debris:'Detriti', defenceDebris:'Difese nei detriti', fields:'Campi extra', deut:'Consumo deuterio', dm:'Materia Oscura' },
             specSwitches:{ acs:'ACS', circular:'galassie e sistemi circolari', probeCargo:'sonde con stiva', deutDebris:'deuterio nei detriti',
@@ -352,7 +353,8 @@ addEventListener('DOMContentLoaded', () =>
                 group:'The universes of the group and the destinations that already exist: every player shows up once.',
                 destination:'Every player who can choose that destination, plus its own players if it already exists: a player with several destinations shows up under each.',
             },
-            spec:{ show:'Show settings', showShort:'Show', close:'Close', peaceful:'peaceful', hostile:'hostile', holding:'holding', fields:'fields', dm:'DM' },
+            spec:{ show:'Show settings', showShort:'Show', close:'Close', peaceful:'peaceful', hostile:'hostile', holding:'holding', fields:'fields', dm:'DM',
+                fromApi:'existing universe: current settings, from the server API', changed:list => `existing universe: current settings from the API, with the changes announced for the merge (${list})` },
             specFields:{ economy:'Economy', research:'Research', peaceful:'Peaceful fleet', holding:'Holding', hostile:'Hostile fleet', galaxies:'Galaxies',
                 debris:'Debris', defenceDebris:'Defence to debris', fields:'Extra fields', deut:'Deuterium usage', dm:'Dark Matter' },
             specSwitches:{ acs:'ACS', circular:'circular galaxies and systems', probeCargo:'probes with cargo', deutDebris:'deuterium in debris',
@@ -496,6 +498,11 @@ addEventListener('DOMContentLoaded', () =>
         acs:true, probeCargo:false, deutDebris:true };
     const DE = { economy:'x8', research:'x16', defenceDebris:'0%', fields:'+30', deut:0.5, dm:25000,
         acs:true, circular:true, probeCargo:false, deutDebris:true, ignoreEmpty:false, ignoreInactive:false };
+    const BRPT = { defenceDebris:'0%', fields:'+30', deut:0.5, acs:true, circular:true, probeCargo:false, deutDebris:true, ignoreEmpty:true, ignoreInactive:true };
+    // the CZ and PL tables: fleet speeds, galaxies, debris, deuterium; no style, dark matter, ACS or ignore switches
+    const TABLE = { defenceDebris:'0%', fields:'+30', deut:0.5, circular:true };
+    const FAST = { economy:'x10', research:'x20', defenceDebris:'0%', fields:'+30', deut:0.5, dm:25000,
+        acs:true, circular:true, probeCargo:true, deutDebris:true, ignoreEmpty:true, ignoreInactive:true };
     const SPECS =
     {
         'IT 281': { ...IT, style:'Miner',    peaceful:'x2', holding:'x2', hostile:'x1', fields:'+30', dm:8000 },
@@ -525,6 +532,82 @@ addEventListener('DOMContentLoaded', () =>
         'DE 288': { ...DE, peaceful:'x2', holding:'x2', hostile:'x2', galaxies:'7', debris:'70%' },
         'DE 289': { ...DE, peaceful:'x4', holding:'x4', hostile:'x4', galaxies:'7', debris:'70%' },
         'DE 290': { ...DE, peaceful:'x6', holding:'x6', hostile:'x6', galaxies:'7', debris:'80%', defenceDebris:'30%' },
+
+        // From the merge announcements on each community's board (27 Oct 2026); several say the settings may
+        // still be adjusted. ES/MX: forum.es thread 42612. BR/PT: forum.pt thread 24393. CZ, DK, TW: their sections
+        // of board.en (threads 858827, 858811, 858815). HR: forum.ba thread 6338. HU: board.hu thread 14915.
+        // PL: forum.pl thread 39670. RO: board.ro thread 21799. RU: board.ru thread 109511. TR: board.tr thread
+        // 552274. US: board.us thread 108152.
+        // The CZ and PL tables have an unexplained 'SS' column (probe cargo or ACS?), left out, as are what they
+        // leave blank. TR 275 is 'Barışçıl' (peaceful), not one of the three categories, so it has no style.
+        'ES 278': { ...ES, style:'Miner',   research:'x16', peaceful:'x6', holding:'x1', hostile:'x1', debris:'30%', deut:1 },
+        'ES 279': { ...ES, style:'Fleeter', research:'x8',  peaceful:'x8', holding:'x4', hostile:'x1' },
+        'MX 161': { ...ES, research:'x16', peaceful:'x8', holding:'x2', hostile:'x2', galaxies:'5' },
+
+        'BR 184': { ...BRPT, style:'Miner',    economy:'x10', research:'x20', peaceful:'x3', holding:'x1', hostile:'x1', galaxies:'5', debris:'50%', dm:8000, acs:false },
+        'BR 185': { ...BRPT, style:'Balanced', economy:'x10', research:'x20', peaceful:'x4', holding:'x2', hostile:'x2', galaxies:'5', debris:'70%', dm:8000 },
+        'BR 186': { ...BRPT, style:'Fleeter',  economy:'x10', research:'x20', peaceful:'x8', holding:'x4', hostile:'x4', galaxies:'5', debris:'70%', dm:8000 },
+        'PT 185': { ...BRPT, style:'Miner',    economy:'x10', research:'x20', peaceful:'x6', holding:'x2', hostile:'x2', galaxies:'6', debris:'50%', dm:25000, acs:false },
+        'PT 186': { ...BRPT, style:'Balanced', economy:'x8',  research:'x16', peaceful:'x6', holding:'x3', hostile:'x3', galaxies:'6', debris:'60%', dm:25000 },
+        'PT 187': { ...BRPT, style:'Fleeter',  economy:'x10', research:'x20', peaceful:'x6', holding:'x4', hostile:'x4', galaxies:'5', debris:'50%', dm:25000 },
+        'PT 188': { ...BRPT, style:'Miner',    economy:'x8',  research:'x16', peaceful:'x6', holding:'x2', hostile:'x2', galaxies:'5', debris:'70%', dm:25000, acs:false },
+
+        'CZ 257': { ...TABLE, economy:'x10', research:'x20', peaceful:'x3', holding:'x1', hostile:'x1', galaxies:'8', debris:'70%', deutDebris:true },
+        'CZ 258': { ...TABLE, economy:'x10', research:'x20', peaceful:'x4', holding:'x3', hostile:'x2', galaxies:'8', debris:'80%', deutDebris:true },
+        'CZ 259': { ...TABLE, economy:'x10', research:'x20', peaceful:'x6', holding:'x4', hostile:'x3', galaxies:'8', debris:'70%', deutDebris:true },
+        'PL 279': { ...TABLE, economy:'x8',  research:'x16', peaceful:'x1', holding:'x1', hostile:'x1', galaxies:'9', debris:'40%', deutDebris:false },
+        'PL 280': { ...TABLE, economy:'x10', research:'x20', peaceful:'x3', holding:'x1', hostile:'x1', galaxies:'9', debris:'80%', deutDebris:true },
+        'PL 281': { ...TABLE, economy:'x10', research:'x20', peaceful:'x6', holding:'x3', hostile:'x2', galaxies:'9', debris:'70%', deutDebris:true },
+        'PL 282': { ...TABLE, economy:'x10', research:'x20', peaceful:'x5', holding:'x3', hostile:'x3', galaxies:'9', debris:'70%', deutDebris:true },
+        'PL 283': { ...TABLE, economy:'x10', research:'x20', peaceful:'x6', holding:'x5', hostile:'x4', galaxies:'9', debris:'80%', deutDebris:true },
+        'PL 284': { ...TABLE, economy:'x8',  research:'x16', peaceful:'x7', holding:'x6', hostile:'x5', galaxies:'9', debris:'80%', deutDebris:true },
+
+        'DK 162': { style:'Balanced', economy:'x10', research:'x20', peaceful:'x8', holding:'x5', hostile:'x3', galaxies:'6', debris:'70%', defenceDebris:'0%', fields:'+30', deut:0.5, dm:8000,
+            acs:true, circular:true, probeCargo:false, deutDebris:true, ignoreEmpty:false, ignoreInactive:false },
+        'HR 149': { style:'Balanced', economy:'x10', research:'x20', peaceful:'x3', holding:'x3', hostile:'x3', galaxies:'7', debris:'70%', defenceDebris:'40%', fields:'+25', deut:0.7, dm:8000,
+            acs:true, circular:true, probeCargo:true, deutDebris:true, ignoreEmpty:false, ignoreInactive:false },
+        // the HU announcement says nothing about circular galaxies and systems
+        'HU 187': { style:'Miner',   economy:'x10', research:'x20', peaceful:'x8', holding:'x8', hostile:'x1', galaxies:'6', debris:'30%', defenceDebris:'0%', fields:'+30', deut:0.5, dm:8000,
+            acs:true, probeCargo:false, deutDebris:false, ignoreEmpty:false, ignoreInactive:false },
+        'HU 188': { style:'Fleeter', economy:'x10', research:'x20', peaceful:'x8', holding:'x4', hostile:'x2', galaxies:'6', debris:'60%', defenceDebris:'0%', fields:'+30', deut:0.5, dm:25000,
+            acs:true, probeCargo:false, deutDebris:true, ignoreEmpty:true, ignoreInactive:true },
+
+        'RO 173': { ...FAST, style:'Miner',   peaceful:'x6', holding:'x4', hostile:'x1', galaxies:'9', debris:'30%', probeCargo:false },
+        'RO 174': { ...FAST, style:'Fleeter', peaceful:'x6', holding:'x6', hostile:'x6', galaxies:'9', debris:'70%', defenceDebris:'30%' },
+        'RU 272': { ...FAST, style:'Fleeter',  peaceful:'x8', holding:'x8', hostile:'x6', galaxies:'6', debris:'70%', defenceDebris:'80%' },
+        'RU 273': { ...FAST, style:'Balanced', peaceful:'x8', holding:'x4', hostile:'x2', galaxies:'8', debris:'80%', deut:0.6, ignoreInactive:false },
+        'RU 274': { ...FAST, style:'Miner',    peaceful:'x4', holding:'x2', hostile:'x1', galaxies:'9', debris:'50%', deut:0.7, ignoreInactive:false },
+        'TW 180': { ...FAST, style:'Fleeter',  peaceful:'x8', holding:'x8', hostile:'x6', galaxies:'6', debris:'70%', defenceDebris:'80%' },
+        'TW 181': { ...FAST, style:'Balanced', peaceful:'x8', holding:'x4', hostile:'x2', galaxies:'8', debris:'80%', deut:0.6, ignoreInactive:false },
+        'TW 182': { ...FAST, style:'Miner',    peaceful:'x4', holding:'x2', hostile:'x1', galaxies:'9', debris:'50%', deut:0.7, ignoreInactive:false },
+        'TR 275': { ...FAST, peaceful:'x8', holding:'x2', hostile:'x2', galaxies:'9', debris:'50%', defenceDebris:'50%', dm:8000 },
+        'TR 276': { ...FAST, style:'Balanced', peaceful:'x4', holding:'x4', hostile:'x4', galaxies:'9', debris:'80%', defenceDebris:'30%', dm:8000 },
+        'TR 277': { ...FAST, style:'Balanced', peaceful:'x6', holding:'x6', hostile:'x6', galaxies:'9', debris:'50%', defenceDebris:'30%', dm:8000 },
+        'US 268': { ...FAST, style:'Miner',    peaceful:'x1', holding:'x1', hostile:'x1', galaxies:'8', debris:'30%', deut:1, ignoreEmpty:false, ignoreInactive:false },
+        'US 269': { ...FAST, style:'Balanced', peaceful:'x8', holding:'x2', hostile:'x2', galaxies:'8', debris:'60%', deut:0.7, ignoreInactive:false },
+        'US 270': { ...FAST, style:'Fleeter',  peaceful:'x4', holding:'x4', hostile:'x4', galaxies:'8', debris:'80%' },
+    };
+    // Destinations that already exist get their current settings from the API (fetch.mjs), with the changes
+    // their merge announcement states on top. Research speed follows economy (economy x researchDurationDivisor),
+    // so a new economy scales it too. DK: board.en thread 858811. NL: thread 858813. SK: thread 858817. RU:
+    // board.ru thread 109511. The rest announce no change (GR has no 2026 thread; JP only a staff opinion).
+    const CHANGES =
+    {
+        'DK 1':   { peaceful:'x3', holding:'x2' },
+        'DK 142': { economy:'x10' },
+        'NL 153': { economy:'x10' },
+        'NL 155': { economy:'x10' },
+        'SK 115': { economy:'x10' },
+        'RU 1':   { peaceful:'x4', debris:'70%' },
+    };
+    const speed = text => Number(String(text).slice(1));
+    const current = n =>
+    {
+        const now = data.universes[n]?.settings;
+        if(!now) return null;
+        const change = CHANGES[n] || {};
+        const research = change.economy ? `x${speed(now.research) / speed(now.economy) * speed(change.economy)}` : now.research;
+        return { ...now, research, ...change };
     };
     // dark matter always with its thousands separator: Intl leaves 8000 bare in Italian and Spanish
     const specValue = (spec, key) => key === 'deut' ? fmt.format(spec.deut) + 'x' : key === 'dm' ? new Intl.NumberFormat(t.locale, { useGrouping:'always' }).format(spec.dm) : spec[key];
@@ -533,14 +616,18 @@ addEventListener('DOMContentLoaded', () =>
     const renderSpecs = () =>
     {
         const names = state.view === 'destination' ? [state.set] : data.communities[state.community].find(g => g.id === state.set).destinations;
-        $('specs').innerHTML = names.filter(n => SPECS[n]).map(n =>
+        // announced settings for a new universe; for one that already exists, today's plus the announced changes
+        const specOf = n => SPECS[n] || current(n);
+        $('specs').innerHTML = names.filter(specOf).map(n =>
         {
-            const spec = SPECS[n];
-            const switches = SPEC_SWITCHES.filter(key => key in spec).map(key => `${t.specSwitches[key]} ${spec[key] ? 'ON' : 'OFF'}`).join(' · ');
+            const spec = specOf(n);
+            const changed = Object.keys(CHANGES[n] || {}).map(key => `${t.specFields[key]} ${spec[key]}`).join(', ');
+            const switches = SPEC_SWITCHES.filter(key => key in spec).map(key => `${t.specSwitches[key]} ${spec[key] ? 'ON' : 'OFF'}`).join(' · ') +
+                (SPECS[n] ? '' : ` · ${changed ? t.spec.changed(changed) : t.spec.fromApi}`);
             // closed by default everywhere, so the ranking stays near the top. The summary says what is
             // inside and carries what sets the destinations apart (fleet speeds, holding, fields, dark matter).
             return `<details class="spec"><summary><span class="specHead"><span class="specTitle"><b>${esc(destinationName(n))}</b>${spec.style ? ` <span>${esc(spec.style)}</span>` : ''}</span>` +
-                `<em>${t.spec.peaceful} ${esc(spec.peaceful)} · ${t.spec.hostile} ${esc(spec.hostile)} · ${t.spec.holding} ${esc(spec.holding)} · ${t.spec.fields} ${esc(spec.fields)} · ${t.spec.dm} ${esc(specValue(spec, 'dm'))}</em></span>` +
+                `<em>${['peaceful', 'hostile', 'holding', 'fields', 'dm'].filter(key => key in spec).map(key => `${t.spec[key]} ${esc(specValue(spec, key))}`).join(' · ')}</em></span>` +
                 `<i class="specToggle" data-show="${esc(t.spec.show)}" data-short="${esc(t.spec.showShort)}" data-close="${esc(t.spec.close)}"></i></summary><dl>` +
                 SPEC_FIELDS.filter(key => key in spec).map(key => `<div><dt>${t.specFields[key]}</dt><dd>${esc(specValue(spec, key))}</dd></div>`).join('') +
                 `</dl><p class="specCommon">${esc(switches)}</p></details>`;

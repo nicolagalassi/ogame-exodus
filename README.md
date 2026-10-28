@@ -25,10 +25,12 @@ Le fusioni sono scritte in `merges.mjs`, ricopiate da https://ogame.comastuff.co
 | Arancio | 195, 254 | Zhang (IT 281), Astrid (IT 282) |
 | Verde | 266, 268, 271, 272, 273, 275, 276 | Astrid (IT 282), Buzz (IT 283) |
 
-Per le destinazioni di cui sono uscite le caratteristiche (IT, EN, ES con Umbra AR, FR, DE) la pagina mostra
-anche quelle annunciate (velocità, detriti, campi extra, materia oscura, ACS, sonde con stiva...), scritte a
-mano in `SPECS`, in `index.html`, dagli annunci di ogni community: i nuovi universi non esistono ancora
-nell'API. Un'impostazione che l'annuncio non dice resta fuori.
+Per ogni destinazione la pagina mostra anche le caratteristiche. Per i nuovi universi sono quelle annunciate
+negli annunci di fusione dei forum di ogni community (velocità, detriti, campi extra, materia oscura, ACS,
+sonde con stiva...), scritte a mano in `SPECS`, in `index.html`, con le fonti nei commenti: i nuovi universi
+non esistono ancora nell'API, e un'impostazione che l'annuncio non dice resta fuori. Per gli universi che
+esistono già sono quelle attuali, lette da `serverData.xml` dell'API, più le modifiche annunciate per la
+fusione (`CHANGES`, in `index.html`).
 
 ## Dati
 
