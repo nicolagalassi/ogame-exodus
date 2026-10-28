@@ -1,7 +1,7 @@
 # Publishes the merged Exodus rankings on GitHub Pages.
 # fetch.mjs reads the official public OGame API - highscore files that Gameforge regenerates about once an
 # hour - so a run every 3 hours is plenty; nothing polls the game more often than that (AGENTS.md 6).
-# About 330 universes, one request at a time: a run takes roughly half an hour.
+# About 330 universes, six at a time and one request at a time per server: a run takes a few minutes.
 # data/ is built here and deployed, never committed.
 name: Exodus rankings on Pages
 
@@ -25,7 +25,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
